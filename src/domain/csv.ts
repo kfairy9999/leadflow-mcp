@@ -64,6 +64,8 @@ export function csvField(value: string | number | null | undefined): string {
 }
 
 function neutralizeFormula(value: string): string {
-  if (/^[=+\-@\t\r]/.test(value)) return `'${value}`;
+  // Excel and Sheets trim leading whitespace before treating a cell as a formula.
+  // A tab or CR in the first position is itself a trigger, even with nothing after it.
+  if (/^[\t\r\n ]*[=+\-@]/.test(value) || /^[\t\r]/.test(value)) return `'${value}`;
   return value;
 }

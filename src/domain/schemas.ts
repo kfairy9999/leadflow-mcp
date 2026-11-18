@@ -157,7 +157,7 @@ export const logInteractionInputSchema = z.object({
 export const scheduleFollowUpInputSchema = z.object({
   leadId: leadIdSchema,
   dueAt: isoDateTimeSchema.describe(
-    'Allowed in the past. Past items show up in list_due_follow_ups immediately.',
+    'Allowed in the past. Past items show up in list_due_follow_ups immediately. Offset and Z spellings of the same instant are the same due time.',
   ),
   reason: z.string().trim().min(1).max(500),
   idempotencyKey: idempotencyKeySchema.optional(),

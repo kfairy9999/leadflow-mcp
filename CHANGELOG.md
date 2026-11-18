@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.1
+
+- Follow-up due times and interaction timestamps were compared as raw text. An offset such as `16:00+01:00`, or a `Z` form with no milliseconds, did not mean the instant it spelled, so a due item could be missing from the call list and `MAX(occurred_at)` could pick the earlier conversation. Writes now store `Date#toISOString`, and the idempotency hash uses that same instant.
+- Logging an interaction set the lead's `updatedAt` to the conversation time. A backdated note moved the lead backward in the recently-updated scan. `updatedAt` is the server clock.
+- Recency treated an age of exactly 2 days as "under 2 days" and exactly 7 days as "under 7 days". The published rubric says under 2, under 7, then 7 through 14 days at 0. Those two instants now follow the rubric.
+- A closed-lost summary said the score was capped when the raw total was already under 15.
+- CSV formula neutralization missed a cell whose first non-whitespace character is `=`, `+`, `-`, or `@`. Spreadsheets still execute those. Leading whitespace is neutralized too.
+- Setting a follow-up to the status it already had rewrote the lead's `updatedAt` and could fail a concurrent update. The same status is now a no-op.
+- `daily_follow_up_briefing`'s `staleAfterDays` was a number schema. Prompt arguments arrive as strings, so a client could not set it. The value is coerced.
+- The Worker's runtime migration sent the formatted SQL script through D1 `exec`. Miniflare's D1 ends a statement at a newline, so `CREATE TABLE` never completed and `/mcp` could not bootstrap. `migrate` now runs one flattened statement at a time. Wrangler still applies `migrations/0001_init.sql` as a file.
+- Log fields named `reason` were redacted, which hid why a seed was skipped. Those diagnostics are logged as `cause`.
+- Tests now cover tool edges, fast-check scoring invariants, contract snapshots, migration parity on Miniflare D1, and the built stdio and HTTP servers. Stryker on `src/domain` scored 82.07% (508 of 619 mutants killed).
+
 ## 0.1.0
 
 First public release.

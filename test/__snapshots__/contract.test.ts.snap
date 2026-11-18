@@ -1,0 +1,750 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MCP contract > snapshots tools/list, resources/list, and prompts/list 1`] = `
+{
+  "prompts": [
+    {
+      "arguments": [
+        {
+          "description": "Days without activity before an open lead is stale. Prompt arguments arrive as strings. Default is the server setting.",
+          "name": "staleAfterDays",
+          "required": false,
+        },
+        {
+          "description": "Voice for the drafted lines. Default friendly.",
+          "name": "tone",
+          "required": false,
+        },
+      ],
+      "description": "Build a front-desk briefing from the live pipeline and the follow-ups that are due. The model must not invent prices, times, or promises.",
+      "name": "daily_follow_up_briefing",
+      "title": "Daily follow-up briefing",
+    },
+    {
+      "arguments": [
+        {
+          "description": "Lead id, for example lead_marina_cho.",
+          "name": "leadId",
+          "required": true,
+        },
+        {
+          "description": "Channel to draft for. Default call.",
+          "name": "channel",
+          "required": false,
+        },
+        {
+          "description": "Default friendly.",
+          "name": "tone",
+          "required": false,
+        },
+      ],
+      "description": "Draft a follow-up for one lead from the recorded facts. The model must not invent discounts or appointment times.",
+      "name": "draft_follow_up",
+      "title": "Draft follow-up",
+    },
+  ],
+  "resourceTemplates": [
+    {
+      "description": "One lead, its score, interactions, and follow-ups, as JSON.",
+      "mimeType": "application/json",
+      "name": "lead",
+      "title": "Lead",
+      "uriTemplate": "leadflow://leads/{leadId}",
+    },
+  ],
+  "resources": [
+    {
+      "description": "lost · Whole-house repipe quote",
+      "mimeType": "application/json",
+      "name": "Chris Dalton",
+      "title": "Lead",
+      "uri": "leadflow://leads/lead_chris_dalton",
+    },
+    {
+      "description": "new · Kitchen sink leak",
+      "mimeType": "application/json",
+      "name": "Ellis Ward",
+      "title": "Lead",
+      "uri": "leadflow://leads/lead_ellis_ward",
+    },
+    {
+      "description": "won · Sump pump replacement",
+      "mimeType": "application/json",
+      "name": "Helen Okonkwo",
+      "title": "Lead",
+      "uri": "leadflow://leads/lead_helen_okonkwo",
+    },
+    {
+      "description": "proposal · Primary bathroom remodel",
+      "mimeType": "application/json",
+      "name": "Jonah Feldman",
+      "title": "Lead",
+      "uri": "leadflow://leads/lead_jonah_feldman",
+    },
+    {
+      "description": "new · No hot water",
+      "mimeType": "application/json",
+      "name": "Luis Ortega",
+      "title": "Lead",
+      "uri": "leadflow://leads/lead_luis_ortega",
+    },
+    {
+      "description": "proposal · Tankless water heater install",
+      "mimeType": "application/json",
+      "name": "Marina Cho",
+      "title": "Lead",
+      "uri": "leadflow://leads/lead_marina_cho",
+    },
+    {
+      "description": "contacted · Main line clog",
+      "mimeType": "application/json",
+      "name": "Priya Nandakumar",
+      "title": "Lead",
+      "uri": "leadflow://leads/lead_priya_nandakumar",
+    },
+    {
+      "description": "proposal · Sewer scope and cleanout",
+      "mimeType": "application/json",
+      "name": "Quinn Harper",
+      "title": "Lead",
+      "uri": "leadflow://leads/lead_quinn_harper",
+    },
+    {
+      "description": "qualified · Outdoor faucet winterize",
+      "mimeType": "application/json",
+      "name": "Rowan Blake",
+      "title": "Lead",
+      "uri": "leadflow://leads/lead_rowan_blake",
+    },
+    {
+      "description": "contacted · Water heater flush",
+      "mimeType": "application/json",
+      "name": "Samira Adeyemi",
+      "title": "Lead",
+      "uri": "leadflow://leads/lead_samira_adeyemi",
+    },
+    {
+      "description": "Stage counts, win rate, open value, and stale leads as JSON.",
+      "mimeType": "application/json",
+      "name": "pipeline",
+      "title": "Pipeline snapshot",
+      "uri": "leadflow://pipeline",
+    },
+    {
+      "description": "The published point rubric used by score_lead. No model is called.",
+      "mimeType": "text/markdown",
+      "name": "scoring_model",
+      "title": "Scoring model",
+      "uri": "leadflow://scoring-model",
+    },
+  ],
+  "tools": [
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+      },
+      "description": "Add a lead to the shop pipeline. Money is integer cents (480000 = $4,800.00), never dollars. Pass an idempotencyKey when retrying so a duplicate submit returns the original lead. A reused key with a different payload is a conflict. The response includes the rule-based priority score.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+          },
+          "contactName": {
+            "description": "Person to call back. Not a company name.",
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string",
+          },
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "maxLength": 200,
+                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+            "description": "Optional. Use null when the caller did not give one.",
+          },
+          "estimatedValueCents": {
+            "description": "Integer cents, not dollars. 480000 means $4,800.00. Use 0 when unknown.",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "integer",
+          },
+          "idempotencyKey": {
+            "description": "Send the same key on retry to avoid a duplicate lead. A different payload with the same key is a conflict.",
+            "maxLength": 80,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string",
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "minLength": 7,
+                "pattern": "^[0-9+().\\-\\s]+$",
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+            "description": "Optional. Digits, spaces, and + ( ) . - only.",
+          },
+          "service": {
+            "description": "The job in the customer’s words.",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string",
+          },
+          "source": {
+            "description": "How the lead arrived.",
+            "enum": [
+              "referral",
+              "website",
+              "phone",
+              "walk_in",
+              "other",
+            ],
+            "type": "string",
+          },
+          "stage": {
+            "description": "Defaults to new.",
+            "enum": [
+              "new",
+              "contacted",
+              "qualified",
+              "proposal",
+              "won",
+              "lost",
+            ],
+            "type": "string",
+          },
+          "urgency": {
+            "description": "Defaults to normal.",
+            "enum": [
+              "low",
+              "normal",
+              "high",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "contactName",
+          "service",
+          "source",
+        ],
+        "type": "object",
+      },
+      "name": "create_lead",
+      "title": "Create lead",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+      },
+      "description": "Export leads as CSV text. Cells that start with =, +, -, or @, including after leading whitespace, tab, or CR, are prefixed with an apostrophe so a spreadsheet will not treat them as formulas. Quotes, commas, and newlines are escaped. The export caps at 5000 rows and sets truncated when that happens. Money is integer cents.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "asOf": {
+            "type": "string",
+          },
+          "stage": {
+            "enum": [
+              "new",
+              "contacted",
+              "qualified",
+              "proposal",
+              "won",
+              "lost",
+            ],
+            "type": "string",
+          },
+        },
+        "type": "object",
+      },
+      "name": "export_leads_csv",
+      "title": "Export leads CSV",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+      },
+      "description": "Read one lead with its priority score, interactions, and follow-ups. Use this before drafting outreach so the reply stays inside the recorded facts.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "leadId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string",
+          },
+        },
+        "required": [
+          "leadId",
+        ],
+        "type": "object",
+      },
+      "name": "get_lead",
+      "title": "Get lead",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+      },
+      "description": "List scheduled follow-ups whose dueAt is at or before asOf (default: server clock). Ordered soonest first. This is the front desk call list.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "asOf": {
+            "description": "Include follow-ups due at or before this instant. Default is the server clock.",
+            "type": "string",
+          },
+          "limit": {
+            "description": "Default 50.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer",
+          },
+        },
+        "type": "object",
+      },
+      "name": "list_due_follow_ups",
+      "title": "List due follow-ups",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+      },
+      "description": "Record a call, email, SMS, visit, or note on a lead. Summary should be the facts of the conversation, not a guess. Pass an idempotencyKey on retry. Omitting occurredAt stamps the server clock, and that default is not part of the idempotency hash. A supplied occurredAt is stored as UTC. The lead updatedAt stays on the server clock, so a backdated note does not sink the lead in search.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "channel": {
+            "enum": [
+              "call",
+              "email",
+              "sms",
+              "visit",
+              "note",
+            ],
+            "type": "string",
+          },
+          "direction": {
+            "enum": [
+              "inbound",
+              "outbound",
+            ],
+            "type": "string",
+          },
+          "idempotencyKey": {
+            "maxLength": 80,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string",
+          },
+          "leadId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string",
+          },
+          "occurredAt": {
+            "description": "When it happened. Default is the server clock.",
+            "type": "string",
+          },
+          "summary": {
+            "description": "What was said. Facts only.",
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "required": [
+          "leadId",
+          "channel",
+          "direction",
+          "summary",
+        ],
+        "type": "object",
+      },
+      "name": "log_interaction",
+      "title": "Log interaction",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+      },
+      "description": "Counts by stage, open pipeline value in cents, win rate among closed leads (won / (won + lost)), and open leads with no activity for staleAfterDays (default 7). Win rate is null when nothing has closed.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "asOf": {
+            "type": "string",
+          },
+          "staleAfterDays": {
+            "description": "Open leads with no activity for this many days are stale. Default 7.",
+            "maximum": 90,
+            "minimum": 1,
+            "type": "integer",
+          },
+        },
+        "type": "object",
+      },
+      "name": "pipeline_summary",
+      "title": "Pipeline summary",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+      },
+      "description": "Schedule a follow-up for a lead. dueAt may be in the past, which makes it due immediately. Offset and Z spellings of the same instant are equivalent, including for the idempotency key. Pass an idempotencyKey on retry.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "dueAt": {
+            "description": "Allowed in the past. Past items show up in list_due_follow_ups immediately. Offset and Z spellings of the same instant are the same due time.",
+            "type": "string",
+          },
+          "idempotencyKey": {
+            "maxLength": 80,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "type": "string",
+          },
+          "leadId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string",
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "required": [
+          "leadId",
+          "dueAt",
+          "reason",
+        ],
+        "type": "object",
+      },
+      "name": "schedule_follow_up",
+      "title": "Schedule follow-up",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+      },
+      "description": "Explain the priority score for one lead. The score is a published sum of source, reachability, urgency, value, stage, and recency, then a cap. It is not persisted and it does not call a model. Read leadflow://scoring-model for the rubric.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "asOf": {
+            "description": "Score as of this instant. Default is the server clock.",
+            "type": "string",
+          },
+          "leadId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string",
+          },
+        },
+        "required": [
+          "leadId",
+        ],
+        "type": "object",
+      },
+      "name": "score_lead",
+      "title": "Score lead",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+      },
+      "description": "Search the pipeline. Text matches name, service, city, email, phone, and notes, case-insensitive for ASCII. Results are ranked inside the 500 most recently updated matches. When truncated is true, narrow the query. Scores are computed, not stored.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "limit": {
+            "description": "Page size. Default 25.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+          },
+          "minScore": {
+            "description": "Inclusive priority score floor. Applied after the scan.",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer",
+          },
+          "offset": {
+            "description": "Default 0.",
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer",
+          },
+          "sort": {
+            "description": "Default updated_at, newest first.",
+            "enum": [
+              "updated_at",
+              "created_at",
+              "value",
+              "score",
+            ],
+            "type": "string",
+          },
+          "source": {
+            "enum": [
+              "referral",
+              "website",
+              "phone",
+              "walk_in",
+              "other",
+            ],
+            "type": "string",
+          },
+          "stage": {
+            "enum": [
+              "new",
+              "contacted",
+              "qualified",
+              "proposal",
+              "won",
+              "lost",
+            ],
+            "type": "string",
+          },
+          "text": {
+            "description": "Case-insensitive ASCII match on name, service, city, email, phone, and notes.",
+            "maxLength": 200,
+            "type": "string",
+          },
+        },
+        "type": "object",
+      },
+      "name": "search_leads",
+      "title": "Search leads",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+      },
+      "description": "Mark a follow-up scheduled, done, or cancelled. Setting the same status again is safe and does not rewrite the lead. Done and cancelled items drop out of list_due_follow_ups.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "followUpId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string",
+          },
+          "status": {
+            "enum": [
+              "scheduled",
+              "done",
+              "cancelled",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "followUpId",
+          "status",
+        ],
+        "type": "object",
+      },
+      "name": "set_follow_up_status",
+      "title": "Set follow-up status",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+      },
+      "description": "Change fields on one lead. Send only the fields that change. Pass expectedUpdatedAt from the last read to reject a stale write. Null clears phone, email, city, or notes. Money stays in integer cents.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+          },
+          "contactName": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string",
+          },
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "maxLength": 200,
+                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+            "description": "Null clears the email address.",
+          },
+          "estimatedValueCents": {
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "integer",
+          },
+          "expectedUpdatedAt": {
+            "description": "Optimistic concurrency token. Pass the updatedAt you last read. The update is rejected if the lead changed.",
+            "type": "string",
+          },
+          "leadId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string",
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "minLength": 7,
+                "pattern": "^[0-9+().\\-\\s]+$",
+                "type": "string",
+              },
+              {
+                "type": "null",
+              },
+            ],
+            "description": "Null clears the phone number.",
+          },
+          "service": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string",
+          },
+          "source": {
+            "enum": [
+              "referral",
+              "website",
+              "phone",
+              "walk_in",
+              "other",
+            ],
+            "type": "string",
+          },
+          "stage": {
+            "enum": [
+              "new",
+              "contacted",
+              "qualified",
+              "proposal",
+              "won",
+              "lost",
+            ],
+            "type": "string",
+          },
+          "urgency": {
+            "enum": [
+              "low",
+              "normal",
+              "high",
+            ],
+            "type": "string",
+          },
+        },
+        "required": [
+          "leadId",
+        ],
+        "type": "object",
+      },
+      "name": "update_lead",
+      "title": "Update lead",
+    },
+  ],
+}
+`;

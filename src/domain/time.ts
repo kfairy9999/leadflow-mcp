@@ -1,3 +1,5 @@
+import { LeadFlowError } from './errors.js';
+
 export const MS_PER_HOUR = 3_600_000;
 export const MS_PER_DAY = 86_400_000;
 
@@ -6,6 +8,19 @@ export function ageInDays(iso: string, asOf: Date): number | null {
   const ms = Date.parse(iso);
   if (Number.isNaN(ms)) return null;
   return Math.max(0, (asOf.getTime() - ms) / MS_PER_DAY);
+}
+
+/**
+ * One spelling for an instant. `Date#toISOString` is UTC with millisecond
+ * precision, and that form sorts chronologically as text. Offset spellings
+ * and a trailing `Z` without milliseconds do not.
+ */
+export function canonicalInstant(iso: string): string {
+  const ms = Date.parse(iso);
+  if (Number.isNaN(ms)) {
+    throw new LeadFlowError('VALIDATION', `Cannot read datetime "${iso}".`);
+  }
+  return new Date(ms).toISOString();
 }
 
 export function hoursBefore(instant: Date, hours: number): string {

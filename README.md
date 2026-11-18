@@ -8,6 +8,10 @@ Built for Claude Desktop, Cursor, and any other Model Context Protocol client. S
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.13-339933)](https://nodejs.org/)
 [![MCP SDK 2.4](https://img.shields.io/badge/MCP%20SDK-2.4.0-111111)](https://github.com/modelcontextprotocol/typescript-sdk)
+[![Tests](https://img.shields.io/badge/tests-117%20passing-2ea44f)](#testing)
+[![Line coverage](https://img.shields.io/badge/lines-99.61%25-2ea44f)](#testing)
+[![Branch coverage](https://img.shields.io/badge/branches-96.88%25-2ea44f)](#testing)
+[![Mutation score](https://img.shields.io/badge/mutation-82.07%25-2ea44f)](#testing)
 
 This is a portfolio project. The seed data is fictional. Nothing here is deployed, and the README does not claim users or production traffic. The numbers below are from a local run on Node v22.23.4.
 
@@ -134,19 +138,19 @@ The host owns the model. LeadFlow owns the books. A tool call is validated by Zo
 
 Money is integer cents. `480000` is $4,800.00. Scores are computed on read, so a rubric change applies to old leads without a migration.
 
-| Tool                   | What it does                                                                                                                                                                      |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `create_lead`          | Insert a lead. Optional `idempotencyKey`. A retry with the same key and payload returns the original lead. A different payload with that key is a conflict.                       |
-| `update_lead`          | Patch one lead. `null` clears phone, email, city, or notes. `expectedUpdatedAt` rejects a write if someone else saved first.                                                      |
-| `get_lead`             | One lead, its score, interactions, and follow-ups.                                                                                                                                |
-| `search_leads`         | ASCII case-insensitive match on name, service, city, email, phone, and notes. Ranked inside the 500 most recently updated matches. `truncated: true` when the scan hits that cap. |
-| `score_lead`           | The published rubric, factor by factor. Does not persist and does not call a model.                                                                                               |
-| `log_interaction`      | Call, email, SMS, visit, or note. Optional idempotency key. An omitted `occurredAt` uses the server clock and is left out of the hash, so a retry does not conflict with itself.  |
-| `schedule_follow_up`   | A due time, including a time in the past. Past items show up as due immediately.                                                                                                  |
-| `set_follow_up_status` | `scheduled`, `done`, or `cancelled`. Done and cancelled leave the due list. Setting the same status again is safe.                                                                |
-| `list_due_follow_ups`  | Scheduled items with `dueAt` at or before the clock. The call list.                                                                                                               |
-| `pipeline_summary`     | Stage counts, open value, win rate `won / (won + lost)`, and open leads quiet for `staleAfterDays` (default 7). Win rate is null when nothing has closed.                         |
-| `export_leads_csv`     | CSV, RFC 4180 quoting, and a leading apostrophe on cells that start with `=`, `+`, `-`, or `@`. Caps at 5,000 rows.                                                               |
+| Tool                   | What it does                                                                                                                                                                                                                                                                                                    |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create_lead`          | Insert a lead. Optional `idempotencyKey`. A retry with the same key and payload returns the original lead. A different payload with that key is a conflict.                                                                                                                                                     |
+| `update_lead`          | Patch one lead. `null` clears phone, email, city, or notes. `expectedUpdatedAt` rejects a write if someone else saved first.                                                                                                                                                                                    |
+| `get_lead`             | One lead, its score, interactions, and follow-ups.                                                                                                                                                                                                                                                              |
+| `search_leads`         | ASCII case-insensitive match on name, service, city, email, phone, and notes. Ranked inside the 500 most recently updated matches. `truncated: true` when the scan hits that cap.                                                                                                                               |
+| `score_lead`           | The published rubric, factor by factor. Does not persist and does not call a model.                                                                                                                                                                                                                             |
+| `log_interaction`      | Call, email, SMS, visit, or note. Optional idempotency key. An omitted `occurredAt` uses the server clock and is left out of the hash, so a retry does not conflict with itself. A supplied time is stored as UTC. `updatedAt` stays on the server clock, so a backdated note does not sink the lead in search. |
+| `schedule_follow_up`   | A due time, including a time in the past. Past items show up as due immediately. Offset and `Z` spellings of the same instant are the same due time, including for the idempotency key.                                                                                                                         |
+| `set_follow_up_status` | `scheduled`, `done`, or `cancelled`. Done and cancelled leave the due list. Setting the same status again is safe and does not rewrite the lead.                                                                                                                                                                |
+| `list_due_follow_ups`  | Scheduled items with `dueAt` at or before the clock. The call list.                                                                                                                                                                                                                                             |
+| `pipeline_summary`     | Stage counts, open value, win rate `won / (won + lost)`, and open leads quiet for `staleAfterDays` (default 7). Win rate is null when nothing has closed.                                                                                                                                                       |
+| `export_leads_csv`     | CSV, RFC 4180 quoting, and a leading apostrophe when a cell starts with `=`, `+`, `-`, or `@`, including after leading whitespace. Caps at 5,000 rows.                                                                                                                                                          |
 
 Read tools set `readOnlyHint` and `idempotentHint`. Writes set `openWorldHint: false` because the server does not call the network.
 
@@ -219,7 +223,7 @@ Inspector launches the command you give it. If Connect fails, the usual cause is
 
 **Node 22.13 and `node:sqlite`.** The brief allowed Node 20 or newer. This repo requires 22.13 because that is the release where `node:sqlite` no longer needs a flag. The module is still marked experimental on Node 22 (release candidate on newer lines). The driver silences that one warning. The SQL is tables, indexes, foreign keys, and `?` parameters. A native driver such as `better-sqlite3` would have pulled a C toolchain into `npm install`, which fights the "clone and test" requirement. The repository interface is the exit if the built-in API moves: `DatabaseSync` is called out in `src/db/node-sqlite.ts` because newer Node versions renamed the class and kept the old name as an alias.
 
-**One SQL dialect, two drivers.** Migrations are `IF NOT EXISTS` strings. Wrangler applies `migrations/0001_init.sql`. Node and the Worker apply the same text embedded in `src/db/migrations.ts`. A unit test fails if the file and the string diverge. D1 has no interactive transaction, so the adapter buffers the writes inside `transaction()` and sends one `batch()`. Reads in that callback see committed rows only. Idempotency does not need read-your-writes: the insert of the row and the insert of the key share a batch, the key is a primary key, and a loser of a race catches the unique violation and returns the winner. That race is tested with `Promise.all` on both drivers.
+**One SQL dialect, two drivers.** Migrations are `IF NOT EXISTS` strings. Wrangler applies `migrations/0001_init.sql`. Node and the Worker apply the same text embedded in `src/db/migrations.ts`. A unit test fails if the file and the string diverge. The runtime migrator splits that script on semicolons and flattens whitespace before `exec`, because D1's `exec` (as Miniflare implements it) ends a statement at a newline and would otherwise reject a formatted `CREATE TABLE`. D1 has no interactive transaction, so the adapter buffers the writes inside `transaction()` and sends one `batch()`. Reads in that callback see committed rows only. Idempotency does not need read-your-writes: the insert of the row and the insert of the key share a batch, the key is a primary key, and a loser of a race catches the unique violation and returns the winner. That race is tested with `Promise.all` on both drivers. The same scenario is also run against a Miniflare D1, with no Cloudflare account.
 
 **Scores are not stored.** A lead's priority is a function of the row, the latest interaction, and the clock. Persisting it would freeze a rubric the day the lead was saved. `minScore` and `sort: score` run in memory over the 500 most recently updated matches, and the tool says `truncated` when that window is full. A shop of this size does not have a warehouse of leads. The cap is there so a runaway import cannot sort the whole table on every keystroke.
 
@@ -233,31 +237,44 @@ Inspector launches the command you give it. If Connect fails, the usual cause is
 
 ## Testing
 
-`npm test` is Vitest. The suite that produced the numbers below is **45 tests**.
+`npm test` is Vitest. On this tree it is **113 tests**. `npm run test:e2e`, after `npm run build`, adds **4** tests that spawn `dist/bin/stdio.js` and `dist/bin/http.js`. The badges count both: **117 passing**. The coverage figures are from `npm run test:coverage` on Node v22.23.4. They do not include the spawned build, which is not instrumented.
 
-| Layer       | What it drives                                                                                                                                                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Unit        | Scoring invariants (factors sum to the score, caps, bands), pipeline math, CSV quoting and formula neutralization, canonical hashing, log redaction, config parsing.                                                           |
-| Repository  | The same cases on `node:sqlite` and on a fake D1 that executes the SQL against `node:sqlite` through the D1-shaped `prepare` / `batch` API. Includes the idempotency race, optimistic concurrency, and LIKE-wildcard escaping. |
-| MCP client  | `@modelcontextprotocol/client` against `createMcpHandler(...).fetch` in process. Tools, resources, prompts, validation errors, and a missing lead.                                                                             |
-| HTTP        | A real `node:http` listen on port 0. Health, 404, a foreign `Host`, a foreign `Origin`, and a client call. Bearer token when configured.                                                                                       |
-| stdio       | A spawned `tsx src/bin/stdio.ts`. Asserts the summary and that stderr has no `example.com` and no `555`.                                                                                                                       |
-| Worker      | The Workers `fetch` entry with the fake D1. Health is public. `/mcp` is 503 without a token, 401 with the wrong token, and serves the seeded pipeline with the right token.                                                    |
-| Demo        | `runDemo()` against `docs/demo-transcript.txt`.                                                                                                                                                                                |
-| Build smoke | `scripts/smoke-stdio.mjs` launches `dist/bin/stdio.js` the way CI does.                                                                                                                                                        |
+| Layer            | What it drives                                                                                                                                                                                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit             | Scoring boundaries and hand-computed totals, fast-check invariants (0–100, factors sum to the score, monotonic source, urgency, value, open stage, recency, and reachability), pipeline math, CSV quoting and formula neutralization, hashing, redaction, config. |
+| Repository       | The same cases on `node:sqlite` and on a fake D1. Idempotency races, optimistic concurrency, LIKE escaping, timezone instants, the 500 and 5,000 caps, and fault mapping for unique, foreign-key, and I/O errors.                                                 |
+| Migration parity | Empty database, a second run that applies nothing, and the same round trip on `node:sqlite` and on Miniflare D1. No Cloudflare credentials.                                                                                                                       |
+| MCP client       | Every tool, including invalid and boundary input, unicode, long strings, missing ids, idempotent retries, follow-up instants, an empty pipeline, and CSV escaping. Snapshots lock `tools/list`, `resources/list`, and `prompts/list`.                             |
+| HTTP             | A real `node:http` listen on port 0. Health, 404, a foreign `Host`, a foreign `Origin`, a bad host header, IPv6 loopback, and bearer rejection (missing, empty, wrong) plus a client that presents the token.                                                     |
+| stdio            | A spawned `tsx src/bin/stdio.ts`, and, after the build, a spawned `dist/bin/stdio.js` driven by a real MCP client.                                                                                                                                                |
+| Worker           | The `fetch` entry on the fake D1 and on Miniflare D1. Health is public. `/mcp` is 503 without a long enough token, 401 with the wrong token, and serves the pipeline with the right token. `LEADFLOW_SEED=always` does not wipe.                                  |
+| Demo             | `runDemo()` against `docs/demo-transcript.txt`.                                                                                                                                                                                                                   |
+| Mutation         | `npm run test:mutate` runs Stryker on `src/domain/**`. It is a separate CI job.                                                                                                                                                                                   |
 
-Coverage from `npm run test:coverage` on this tree, V8, including `src/**` and excluding `src/bin/**` (those files are the thin entrypoints the stdio and smoke tests spawn):
+Coverage from `npm run test:coverage` on this tree, V8, including `src/**` and excluding `src/bin/**`:
 
 |            | Percent | Count     |
 | ---------- | ------- | --------- |
-| Statements | 90.04%  | 760 / 844 |
-| Branches   | 78.02%  | 419 / 537 |
-| Functions  | 94.21%  | 228 / 242 |
-| Lines      | 91.33%  | 696 / 762 |
+| Statements | 99.29%  | 851 / 857 |
+| Branches   | 96.88%  | 528 / 545 |
+| Functions  | 99.19%  | 245 / 247 |
+| Lines      | 99.61%  | 771 / 774 |
 
-Domain lines are 95.53%. The MCP registration file is 95.48% lines. Thresholds in `vitest.config.ts` sit under those figures (88% statements, 74% branches, 90% functions, 88% lines) so a silent drop fails CI without making the gate equal to one run's rounding.
+Core files, same run:
 
-`npm audit --omit=dev` on this lockfile reports no production vulnerabilities. A full `npm audit` reports high advisories in the dev toolchain (Vitest and typescript-eslint, via `picomatch`). They are not in the runtime dependency tree.
+| File                    | Lines            | Branches           |
+| ----------------------- | ---------------- | ------------------ |
+| `src/domain/**`         | 100% (185 / 185) | 99.11% (111 / 112) |
+| `src/domain/scoring.ts` | 100% (75 / 75)   | 98.52% (67 / 68)   |
+| `src/db/repository.ts`  | 100% (149 / 149) | 100% (116 / 116)   |
+| `src/mcp/server.ts`     | 100% (133 / 133) | 95.65% (88 / 92)   |
+| `src/mcp/format.ts`     | 100% (17 / 17)   | 100% (8 / 8)       |
+
+`vitest.config.ts` fails CI under 98% statements, 95% branches, 98% functions, and 98% lines for the whole tree. Domain files fail under 100% lines and 95% branches each. `repository.ts` fails under 98% lines and 95% branches. `server.ts` fails under 100% lines and 95% branches. The one open scoring branch is the empty "strongest signal" clause: every published source adds a positive factor, so that clause does not run. The open `server.ts` branches are the resource-template helper for an array variable the client does not send.
+
+`npm run test:mutate` is Stryker 10.1.1 with the Vitest runner on `src/domain/**/*.ts`. This run scored **82.07%**: 619 mutants, 508 killed, 110 survived, 1 with no coverage, none timed out, none errored, in 4 minutes 6 seconds. `scoring.ts` was 73.36% (223 killed, 80 survived); most of those survivors are edits to the detail strings. The CI job fails below 80.
+
+`npm audit --omit=dev` on this lockfile reports no production vulnerabilities. A full `npm audit` reports 12 high and 5 moderate advisories, all in devDependencies (Vitest, typescript-eslint, Stryker, and transitive packages such as `picomatch`). They are not in the runtime dependency tree.
 
 ## Deploy
 
@@ -298,12 +315,13 @@ src/db/             SQL, migrations, repository, seed, both drivers
 src/http/serve.ts   loopback Streamable HTTP
 src/worker.ts       Cloudflare Workers fetch handler
 migrations/         Wrangler D1 migration, kept equal to the embedded SQL
-test/               unit, repository, MCP, HTTP, stdio, worker, demo
+test/               unit, property, repository, contract, MCP, HTTP, stdio, worker, e2e, demo
 scripts/demo.ts     the transcript
 scripts/smoke-stdio.mjs
+stryker.config.json mutation testing for src/domain
 ```
 
-Scripts: `dev`, `dev:http`, `build`, `start`, `start:http`, `seed`, `demo`, `test`, `test:coverage`, `lint`, `format`, `typecheck`, `deploy:cf`.
+Scripts: `dev`, `dev:http`, `build`, `start`, `start:http`, `seed`, `demo`, `test`, `test:coverage`, `test:e2e`, `test:mutate`, `lint`, `format`, `typecheck`, `deploy:cf`.
 
 ## License
 

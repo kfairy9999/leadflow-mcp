@@ -22,9 +22,11 @@ npm run typecheck
 npm test
 npm run test:coverage
 npm run build
+npm run test:e2e
+npm run test:mutate
 ```
 
-CI runs the same steps on Node 22.
+CI runs the same steps on Node 22, then `npm run test:e2e` after the build. Mutation testing is a separate job, `npm run test:mutate`, and it fails the workflow below the break score in `stryker.config.json`.
 
 ## Habits
 

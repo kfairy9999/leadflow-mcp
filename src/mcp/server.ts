@@ -198,7 +198,7 @@ function registerTools(server: McpServer, services: LeadFlowServices): void {
     {
       title: 'Log interaction',
       description:
-        'Record a call, email, SMS, visit, or note on a lead. Summary should be the facts of the conversation, not a guess. Pass an idempotencyKey on retry. Omitting occurredAt stamps the server clock, and that default is not part of the idempotency hash.',
+        'Record a call, email, SMS, visit, or note on a lead. Summary should be the facts of the conversation, not a guess. Pass an idempotencyKey on retry. Omitting occurredAt stamps the server clock, and that default is not part of the idempotency hash. A supplied occurredAt is stored as UTC. The lead updatedAt stays on the server clock, so a backdated note does not sink the lead in search.',
       inputSchema: logInteractionInputSchema,
       annotations: { ...WRITE, idempotentHint: true },
     },
@@ -218,7 +218,7 @@ function registerTools(server: McpServer, services: LeadFlowServices): void {
     {
       title: 'Schedule follow-up',
       description:
-        'Schedule a follow-up for a lead. dueAt may be in the past, which makes it due immediately. Pass an idempotencyKey on retry.',
+        'Schedule a follow-up for a lead. dueAt may be in the past, which makes it due immediately. Offset and Z spellings of the same instant are equivalent, including for the idempotency key. Pass an idempotencyKey on retry.',
       inputSchema: scheduleFollowUpInputSchema,
       annotations: { ...WRITE, idempotentHint: true },
     },
@@ -238,7 +238,7 @@ function registerTools(server: McpServer, services: LeadFlowServices): void {
     {
       title: 'Set follow-up status',
       description:
-        'Mark a follow-up scheduled, done, or cancelled. Setting the same status again is safe. Done and cancelled items drop out of list_due_follow_ups.',
+        'Mark a follow-up scheduled, done, or cancelled. Setting the same status again is safe and does not rewrite the lead. Done and cancelled items drop out of list_due_follow_ups.',
       inputSchema: setFollowUpStatusInputSchema,
       annotations: { ...WRITE, idempotentHint: true },
     },
@@ -302,7 +302,7 @@ function registerTools(server: McpServer, services: LeadFlowServices): void {
     {
       title: 'Export leads CSV',
       description:
-        'Export leads as CSV text. Cells that start with =, +, -, or @ are prefixed with an apostrophe so a spreadsheet will not treat them as formulas. Quotes and newlines are escaped. The export caps at 5000 rows and sets truncated when that happens. Money is integer cents.',
+        'Export leads as CSV text. Cells that start with =, +, -, or @, including after leading whitespace, tab, or CR, are prefixed with an apostrophe so a spreadsheet will not treat them as formulas. Quotes, commas, and newlines are escaped. The export caps at 5000 rows and sets truncated when that happens. Money is integer cents.',
       inputSchema: exportLeadsInputSchema,
       annotations: READ_ONLY,
     },
@@ -420,14 +420,14 @@ function registerPrompts(server: McpServer, services: LeadFlowServices): void {
       description:
         'Build a front-desk briefing from the live pipeline and the follow-ups that are due. The model must not invent prices, times, or promises.',
       argsSchema: z.object({
-        staleAfterDays: z
+        staleAfterDays: z.coerce
           .number()
           .int()
           .min(1)
           .max(90)
           .optional()
           .describe(
-            'Days without activity before an open lead is stale. Default is the server setting.',
+            'Days without activity before an open lead is stale. Prompt arguments arrive as strings. Default is the server setting.',
           ),
         tone: z
           .enum(['friendly', 'concise'])
