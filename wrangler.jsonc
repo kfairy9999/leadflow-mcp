@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "leadflow-mcp",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-11-18",
+  "compatibility_flags": ["nodejs_compat"],
+  // Free-tier D1. `database_id` is filled in by `wrangler d1 create leadflow`
+  // or by automatic provisioning on the first authenticated deploy.
+  // This file does not point at a live database.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "leadflow",
+      "migrations_dir": "migrations",
+    },
+  ],
+  // The worker refuses /mcp until this is a real secret of at least 16 characters.
+  // Set it with `wrangler secret put LEADFLOW_AUTH_TOKEN`. Do not commit a value.
+  "vars": {
+    "LEADFLOW_SEED": "auto",
+    "LEADFLOW_STALE_DAYS": "7",
+  },
+}

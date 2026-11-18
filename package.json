@@ -1,0 +1,72 @@
+{
+  "name": "leadflow-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that gives an AI assistant a small-business lead pipeline: capture, score, follow up, and report. Zero paid APIs.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Kevin Fairley",
+  "homepage": "https://kfairy9999.github.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kfairy9999/leadflow-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kfairy9999/leadflow-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "leads",
+    "crm",
+    "sqlite",
+    "small-business"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "bin": {
+    "leadflow-mcp": "./dist/bin/stdio.js"
+  },
+  "files": [
+    "dist",
+    "migrations",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsx src/bin/stdio.ts",
+    "dev:http": "tsx src/bin/http.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/bin/stdio.js",
+    "start:http": "node dist/bin/http.js",
+    "seed": "tsx src/bin/seed.ts",
+    "demo": "tsx scripts/demo.ts",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "deploy:cf": "wrangler deploy"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@modelcontextprotocol/node": "^2.1.2",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.164.0"
+  }
+}
