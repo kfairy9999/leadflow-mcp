@@ -1,0 +1,52 @@
+LeadFlow MCP  ·  Northglass Plumbing, Harborton (fictional)
+clock 2026-11-18T15:00:00.000Z  ·  in-process MCP client, seeded SQLite
+
+$ tools/list
+create_lead  update_lead  get_lead  search_leads  score_lead  log_interaction  schedule_follow_up  set_follow_up_status  list_due_follow_ups  pipeline_summary  export_leads_csv
+
+$ pipeline_summary {}
+Pipeline as of 2026-11-18T15:00:00.000Z
+Open: 8 · Won: 1 · Lost: 1 · Win rate: 1/2 (50.0%)
+Open value: $21,050.00
+Stages: new 2, contacted 2, qualified 1, proposal 3, won 1, lost 1
+Stale (>7d): 2
+- lead_samira_adeyemi · Samira Adeyemi · contacted · Water heater flush · 18d quiet
+- lead_rowan_blake · Rowan Blake · qualified · Outdoor faucet winterize · 8d quiet
+
+$ list_due_follow_ups {}
+3 follow-ups due as of 2026-11-18T15:00:00.000Z
+- fu_priya_nandakumar · Priya Nandakumar · lead_priya_nandakumar · due 2026-11-17T13:00:00.000Z · Main line is still unanswered.
+- fu_marina_cho · Marina Cho · lead_marina_cho · due 2026-11-18T13:00:00.000Z · Confirm the tankless install window.
+- fu_luis_ortega · Luis Ortega · lead_luis_ortega · due 2026-11-18T14:30:00.000Z · Call back about the no-hot-water emergency.
+
+$ score_lead {"leadId":"lead_marina_cho"}
+lead_marina_cho · Marina Cho · proposal · 100/100 hot · $4,800.00 · Tankless water heater install
+Hot follow-up priority, 100/100. Strongest signal: Referral is the strongest source in this rubric.
++22 source — Referral is the strongest source in this rubric.
++10 phone — A phone number is on file.
++8 email — An email address is on file.
++20 urgency — Urgency is high.
++12 value — Estimated value is $1,500 to $4,999.99.
++16 stage — Stage is proposal. Closest open stage to a decision.
++16 recency — Last activity was under 2 days ago.
+-4 cap — The raw total exceeded 100, so the published ceiling was applied.
+= 100
+
+$ score_lead {"leadId":"lead_samira_adeyemi"}
+lead_samira_adeyemi · Samira Adeyemi · contacted · 27/100 cool · $220.00 · Water heater flush
+Cool follow-up priority, 27/100. Strongest signal: Website lead. Ahead of a cold inquiry, behind a referral.
++14 source — Website lead. Ahead of a cold inquiry, behind a referral.
++8 email — An email address is on file.
++6 urgency — Urgency is normal.
++4 value — Estimated value is under $400.
++7 stage — Stage is contacted. A conversation has started.
+-12 recency — No activity for 18 days. Open leads go quiet after 14 days.
+= 27
+
+$ create_lead {"contactName":"Demo Replay","service":"Faucet drip","source":"website","email":"demo.replay@example.com","idempotencyKey":"demo-replay-01"}
+Created lead_<generated> · Demo Replay · new · 44/100 cool · $0.00 · Faucet drip
+Replay: no
+
+$ create_lead {"contactName":"Demo Replay","service":"Faucet drip","source":"website","email":"demo.replay@example.com","idempotencyKey":"demo-replay-01"}
+Created lead_<generated> · Demo Replay · new · 44/100 cool · $0.00 · Faucet drip
+Replay: yes, existing lead returned
