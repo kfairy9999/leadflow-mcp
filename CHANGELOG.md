@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Docs: the Worker is live at `https://leadflow-mcp.kfairley9999.workers.dev` on Cloudflare Workers and D1 (free tier). The README documents the endpoints, bearer-token auth, and client setup for Cursor, Claude Desktop, and the SDK. No code changed.
+
 ## 0.1.1
 
 - Follow-up due times and interaction timestamps were compared as raw text. An offset such as `16:00+01:00`, or a `Z` form with no milliseconds, did not mean the instant it spelled, so a due item could be missing from the call list and `MAX(occurred_at)` could pick the earlier conversation. Writes now store `Date#toISOString`, and the idempotency hash uses that same instant.

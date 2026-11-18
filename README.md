@@ -13,7 +13,9 @@ Built for Claude Desktop, Cursor, and any other Model Context Protocol client. S
 [![Branch coverage](https://img.shields.io/badge/branches-96.88%25-2ea44f)](#testing)
 [![Mutation score](https://img.shields.io/badge/mutation-82.07%25-2ea44f)](#testing)
 
-This is a portfolio project. The seed data is fictional. Nothing here is deployed, and the README does not claim users or production traffic. The numbers below are from a local run on Node v22.23.4.
+This is a portfolio project. The seed data is fictional, and the README does not claim users or production traffic. The numbers below are from a local run on Node v22.23.4.
+
+**Live deployment:** [`https://leadflow-mcp.kfairley9999.workers.dev`](https://leadflow-mcp.kfairley9999.workers.dev/health) runs on Cloudflare Workers (free tier) with D1 holding the fictional Northglass Plumbing seed. [`/health`](https://leadflow-mcp.kfairley9999.workers.dev/health) is public and returns no lead data. `/mcp` requires a bearer token. See [Live deployment](#live-deployment).
 
 ## Demo
 
@@ -276,11 +278,77 @@ Core files, same run:
 
 `npm audit --omit=dev` on this lockfile reports no production vulnerabilities. A full `npm audit` reports 12 high and 5 moderate advisories, all in devDependencies (Vitest, typescript-eslint, Stryker, and transitive packages such as `picomatch`). They are not in the runtime dependency tree.
 
-## Deploy
+## Live deployment
 
-There is **no live URL**. This environment has no Cloudflare credentials, and the project does not invent one.
+| Endpoint                                                   | Auth                            | What it returns                                          |
+| ---------------------------------------------------------- | ------------------------------- | -------------------------------------------------------- |
+| `GET https://leadflow-mcp.kfairley9999.workers.dev/health` | none                            | `{"ok":true,"service":"leadflow-mcp","version":"0.1.1"}` |
+| `POST https://leadflow-mcp.kfairley9999.workers.dev/mcp`   | `Authorization: Bearer <token>` | Streamable HTTP MCP: 11 tools, 3 resources, 2 prompts    |
 
-`npx wrangler deploy --dry-run` with Wrangler 4.164.0 did bundle the Worker: upload 752.38 KiB, gzip 154.35 KiB, with the `DB` D1 binding and the `LEADFLOW_SEED` / `LEADFLOW_STALE_DAYS` variables. The dry run stops before any account call.
+The Worker is `leadflow-mcp`, bound to the D1 database `leadflow` as `DB`, with `compatibility_date` `2026-11-18` and `nodejs_compat`. The schema comes from `migrations/0001_init.sql`. The fictional seed loads on the first authenticated request because `LEADFLOW_SEED` is `auto`. A request without a token, or with the wrong one, gets `401` and `WWW-Authenticate: Bearer`. The token is a Worker secret. It is not in this repository, and the owner hands it out.
+
+Smoke test it:
+
+```bash
+curl https://leadflow-mcp.kfairley9999.workers.dev/health
+
+export LEADFLOW_AUTH_TOKEN=...   # ask the owner
+curl -X POST https://leadflow-mcp.kfairley9999.workers.dev/mcp \
+  -H "Authorization: Bearer $LEADFLOW_AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
+```
+
+Connect from Cursor. Its MCP settings accept a remote URL with headers, and `${env:...}` keeps the token out of the file:
+
+```json
+{
+  "mcpServers": {
+    "leadflow-live": {
+      "url": "https://leadflow-mcp.kfairley9999.workers.dev/mcp",
+      "headers": { "Authorization": "Bearer ${env:LEADFLOW_AUTH_TOKEN}" }
+    }
+  }
+}
+```
+
+Connect from Claude Desktop through the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) bridge, which turns the remote server into a local stdio process:
+
+```json
+{
+  "mcpServers": {
+    "leadflow-live": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://leadflow-mcp.kfairley9999.workers.dev/mcp",
+        "--header",
+        "Authorization:${LEADFLOW_AUTH}"
+      ],
+      "env": { "LEADFLOW_AUTH": "Bearer <token>" }
+    }
+  }
+}
+```
+
+From code, pass the header to the SDK transport:
+
+```ts
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+
+const transport = new StreamableHTTPClientTransport(
+  new URL('https://leadflow-mcp.kfairley9999.workers.dev/mcp'),
+  { requestInit: { headers: { Authorization: `Bearer ${process.env.LEADFLOW_AUTH_TOKEN}` } } },
+);
+const client = new Client({ name: 'my-agent', version: '1.0.0' });
+await client.connect(transport);
+console.log((await client.listTools()).tools.length); // 11
+```
+
+## Deploy your own
+
+`npx wrangler deploy --dry-run` with Wrangler 4.164.0 bundles the Worker: upload 753.66 KiB, gzip 154.78 KiB (387.25 KiB / 107.30 KiB with `--minify`), with the `DB` D1 binding and the `LEADFLOW_SEED` / `LEADFLOW_STALE_DAYS` variables. The dry run stops before any account call.
 
 The Worker entry is `src/worker.ts`. Wrangler 4 is a devDependency (`wrangler` 4.164.0 in the lockfile). `compatibility_date` is `2026-11-18`. D1 is bound as `DB`. `database_id` is omitted so the first authenticated deploy can provision the database, or you can create it yourself and paste the id.
 
@@ -289,11 +357,13 @@ npx wrangler login
 npx wrangler d1 create leadflow
 # put the printed database_id on the d1_databases entry in wrangler.jsonc
 npx wrangler d1 migrations apply leadflow --remote
-npx wrangler secret put LEADFLOW_AUTH_TOKEN
+openssl rand -base64 48 | npx wrangler secret put LEADFLOW_AUTH_TOKEN
 npx wrangler deploy
 ```
 
-The MCP URL is `https://<your-worker>.workers.dev/mcp`. Clients send `Authorization: Bearer <token>`. Until the secret is set, `/mcp` answers 503 and the database stays closed. The Worker also runs the embedded migration on request, and the SQL is idempotent, so the Wrangler migration and the runtime migration can both apply.
+The MCP URL is `https://<your-worker>.<your-subdomain>.workers.dev/mcp`. Clients send `Authorization: Bearer <token>`. Until the secret is set, `/mcp` answers 503 and the database stays closed. The Worker also runs the embedded migration on request, and the SQL is idempotent, so the Wrangler migration and the runtime migration can both apply.
+
+The live deployment above was made the same way through the Cloudflare REST API: create the D1 database, run `0001_init.sql` against it, upload the `--dry-run` bundle with its bindings and the secret, and turn on the `workers.dev` route.
 
 Free tier, as published by Cloudflare: Workers and D1 both have a free allotment. This repo does not measure that allotment and does not depend on a paid Workers feature. If you do not want a Cloudflare account, the supported host is the stdio process on your own machine. That path is the one CI smokes.
 
