@@ -305,14 +305,16 @@ function recencyFactor(input: ScoreInput): ScoreFactor {
       detail: 'Activity timestamp could not be read, so the lead is treated as quiet.',
     };
   }
-  if (age <= 2) {
+  // The published rubric is exclusive on the "under" bands: exactly 2 days
+  // is "under 7", and exactly 7 days is the start of the zero band through 14.
+  if (age < 2) {
     return {
       id: 'recency',
       points: SCORE_RULES.recency.within2Days,
       detail: 'Last activity was under 2 days ago.',
     };
   }
-  if (age <= 7) {
+  if (age < 7) {
     return {
       id: 'recency',
       points: SCORE_RULES.recency.within7Days,
@@ -350,7 +352,11 @@ function summarize(
     return `Won. Informational score ${score}/100 (${band}). This lead is already closed and is not a follow-up priority.`;
   }
   if (disposition === 'lost') {
-    return `Lost. Score capped at ${score}/100 (${band}). Closed-lost leads stay out of the chase queue.`;
+    const capped = factors.some((factor) => factor.id === 'cap');
+    const headline = capped
+      ? `Score capped at ${score}/100 (${band}).`
+      : `Score ${score}/100 (${band}).`;
+    return `Lost. ${headline} Closed-lost leads stay out of the chase queue.`;
   }
   const top = factors
     .filter((factor) => factor.points > 0)

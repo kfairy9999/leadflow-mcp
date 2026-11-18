@@ -1,6 +1,7 @@
 import { LeadFlowError } from '../domain/errors.js';
 import { requestHash } from '../domain/hash.js';
 import { scoreLeadRecord } from '../domain/scoring.js';
+import { canonicalInstant } from '../domain/time.js';
 import { createId } from '../ids.js';
 import type {
   CreateLeadInput,
@@ -261,13 +262,14 @@ export class LeadRepository {
     now: Date,
   ): Promise<{ interaction: Interaction; replay: boolean }> {
     await this.requireLead(input.leadId);
-    const occurredAt = input.occurredAt ?? now.toISOString();
+    const occurredAtInput = input.occurredAt === null ? null : canonicalInstant(input.occurredAt);
+    const occurredAt = occurredAtInput ?? now.toISOString();
     const hash = requestHash({
       leadId: input.leadId,
       channel: input.channel,
       direction: input.direction,
       summary: input.summary,
-      occurredAt: input.occurredAt,
+      occurredAt: occurredAtInput,
     });
     const interaction: Interaction = {
       id: createId('int'),
@@ -280,7 +282,10 @@ export class LeadRepository {
     try {
       await this.db.transaction(async (tx) => {
         await insertInteraction(tx, interaction);
-        await tx.run('UPDATE leads SET updated_at = ? WHERE id = ?', [occurredAt, input.leadId]);
+        await tx.run('UPDATE leads SET updated_at = ? WHERE id = ?', [
+          now.toISOString(),
+          input.leadId,
+        ]);
         if (input.idempotencyKey) {
           await insertIdempotency(
             tx,
@@ -320,16 +325,17 @@ export class LeadRepository {
     now: Date,
   ): Promise<{ followUp: FollowUp; replay: boolean }> {
     await this.requireLead(input.leadId);
+    const dueAt = canonicalInstant(input.dueAt);
     const hash = requestHash({
       leadId: input.leadId,
-      dueAt: input.dueAt,
+      dueAt,
       reason: input.reason,
     });
     const iso = now.toISOString();
     const followUp: FollowUp = {
       id: createId('fu'),
       leadId: input.leadId,
-      dueAt: input.dueAt,
+      dueAt,
       reason: input.reason,
       status: 'scheduled',
       createdAt: iso,
@@ -369,6 +375,7 @@ export class LeadRepository {
   async setFollowUpStatus(id: string, status: FollowUpStatus, now: Date): Promise<FollowUp> {
     const current = await this.getFollowUp(id);
     if (!current) throw new LeadFlowError('NOT_FOUND', `No follow-up with id "${id}".`);
+    if (current.status === status) return current;
     const iso = now.toISOString();
     await this.db.transaction(async (tx) => {
       await tx.run('UPDATE follow_ups SET status = ? WHERE id = ?', [status, id]);
@@ -533,7 +540,7 @@ async function insertInteraction(tx: SqlExecutor, interaction: Interaction): Pro
       interaction.channel,
       interaction.direction,
       interaction.summary,
-      interaction.occurredAt,
+      canonicalInstant(interaction.occurredAt),
     ],
   );
 }
@@ -545,7 +552,7 @@ async function insertFollowUp(tx: SqlExecutor, followUp: FollowUp): Promise<void
     [
       followUp.id,
       followUp.leadId,
-      followUp.dueAt,
+      canonicalInstant(followUp.dueAt),
       followUp.reason,
       followUp.status,
       followUp.createdAt,

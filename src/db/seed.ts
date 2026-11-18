@@ -316,7 +316,7 @@ export async function bootstrap(
     await repository.importSeed(buildSeed(options.now));
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
-    options.logger.info('seed.skipped', { reason: 'concurrent_insert' });
+    options.logger.info('seed.skipped', { cause: 'concurrent_insert' });
     return { repository, seeded: false };
   }
   options.logger.info('seed.applied', { mode: 'auto', leads: SEED_LEAD_COUNT });

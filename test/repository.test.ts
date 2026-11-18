@@ -7,7 +7,7 @@ import { scoreLeadRecord } from '../src/domain/scoring.js';
 import { summarizePipeline } from '../src/domain/pipeline.js';
 import type { CreateLeadInput, UpdateLeadInput } from '../src/domain/types.js';
 import { MIGRATION_001_SQL } from '../src/db/migrations.js';
-import { migrate } from '../src/db/migrate.js';
+import { migrate, statementsOf } from '../src/db/migrate.js';
 import type { SqlDatabase } from '../src/db/sql.js';
 import { buildSeed } from '../src/db/seed.js';
 import { openNodeSqlite } from '../src/db/node-sqlite.js';
@@ -337,5 +337,10 @@ describe('migration file', () => {
   it('matches the SQL embedded for the worker', () => {
     const file = readFileSync(new URL('../migrations/0001_init.sql', import.meta.url), 'utf8');
     expect(file.trim()).toBe(MIGRATION_001_SQL.trim());
+    const statements = statementsOf(file);
+    expect(statements).toHaveLength(9);
+    expect(statements.every((statement) => !statement.includes('\n'))).toBe(true);
+    expect(statements[0]).toContain('CREATE TABLE IF NOT EXISTS schema_migrations');
+    expect(statements.at(-1)).toContain('idx_follow_ups_status_due');
   });
 });

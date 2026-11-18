@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import worker from '../src/worker.js';
 import { createFakeD1 } from './fake-d1.js';
@@ -47,6 +47,74 @@ describe('worker entry', () => {
       expect(textOf(summary)).toContain('Open: 8');
     } finally {
       await client.close();
+    }
+  });
+
+  it('ignores seed=always, leaves an empty database on never, and falls back on bad settings', async () => {
+    const db = await createFakeD1();
+    const errors: string[] = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation((line: unknown) => {
+      errors.push(String(line));
+    });
+    try {
+      const client = await connectHandler(async (url, init) => {
+        const headers = new Headers(init?.headers);
+        headers.set('authorization', `Bearer ${TOKEN}`);
+        return worker.fetch(new Request(url, { ...init, headers }), {
+          DB: db,
+          LEADFLOW_AUTH_TOKEN: TOKEN,
+          LEADFLOW_SEED: 'auto',
+        });
+      }, 'https://leadflow.test/mcp');
+      const created = await client.callTool({
+        name: 'create_lead',
+        arguments: { contactName: 'Kept', service: 'Leak', source: 'other' },
+      });
+      expect(textOf(created)).toContain('Kept');
+      await client.close();
+
+      const again = await connectHandler(async (url, init) => {
+        const headers = new Headers(init?.headers);
+        headers.set('authorization', `Bearer ${TOKEN}`);
+        return worker.fetch(new Request(url, { ...init, headers }), {
+          DB: db,
+          LEADFLOW_AUTH_TOKEN: `  ${TOKEN}  `,
+          LEADFLOW_SEED: 'always',
+        });
+      }, 'https://leadflow.test/mcp');
+      const summary = await again.callTool({ name: 'pipeline_summary', arguments: {} });
+      expect(textOf(summary)).toContain('Open: 9');
+      expect(errors.join('\n')).toContain('seed.ignored');
+      expect(errors.join('\n')).toContain('worker_rejects_always');
+      await again.close();
+
+      const short = await worker.fetch(
+        new Request('https://leadflow.test/mcp', {
+          method: 'POST',
+          headers: { authorization: `Bearer ${TOKEN}` },
+        }),
+        { DB: db, LEADFLOW_AUTH_TOKEN: '   short   ' },
+      );
+      expect(short.status).toBe(503);
+
+      const emptyDb = await createFakeD1();
+      const quiet = await connectHandler(async (url, init) => {
+        const headers = new Headers(init?.headers);
+        headers.set('authorization', `Bearer ${TOKEN}`);
+        return worker.fetch(new Request(url, { ...init, headers }), {
+          DB: emptyDb,
+          LEADFLOW_AUTH_TOKEN: TOKEN,
+          LEADFLOW_SEED: 'never',
+          LEADFLOW_STALE_DAYS: 'nope',
+          LEADFLOW_LOG_LEVEL: 'loud',
+        });
+      }, 'https://leadflow.test/mcp');
+      const none = await quiet.callTool({ name: 'pipeline_summary', arguments: {} });
+      expect(textOf(none)).toContain('Open: 0');
+      expect(textOf(none)).toContain('Stale (>7d)');
+      await quiet.close();
+    } finally {
+      spy.mockRestore();
     }
   });
 });

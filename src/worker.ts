@@ -5,7 +5,6 @@ import { systemClock } from './clock.js';
 import { parseStaleDays } from './config.js';
 import { D1SqlDatabase, type D1LikeDatabase } from './db/d1.js';
 import { bootstrap } from './db/seed.js';
-import { ConfigError } from './domain/errors.js';
 import { createLogger, parseLogLevel } from './logger.js';
 import { createLeadFlowServer } from './mcp/server.js';
 import { VERSION } from './version.js';
@@ -42,7 +41,7 @@ const worker = {
     const logger = createLogger({ level: safeLevel(env.LEADFLOW_LOG_LEVEL) });
     const db = new D1SqlDatabase(env.DB);
     if (env.LEADFLOW_SEED === 'always') {
-      logger.warn('seed.ignored', { reason: 'worker_rejects_always' });
+      logger.warn('seed.ignored', { cause: 'worker_rejects_always' });
     }
     const seeded = await bootstrap(db, {
       seed: env.LEADFLOW_SEED === 'never' ? 'never' : 'auto',
@@ -97,8 +96,7 @@ function safeLevel(value: string | undefined) {
 function safeStaleDays(value: string | undefined): number {
   try {
     return parseStaleDays(value);
-  } catch (error) {
-    if (error instanceof ConfigError) return 7;
+  } catch {
     return 7;
   }
 }
