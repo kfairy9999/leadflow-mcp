@@ -20,14 +20,30 @@ export interface LeadFlowEnv {
 /**
  * Cloudflare Workers entry. The worker refuses MCP traffic until
  * LEADFLOW_AUTH_TOKEN is set, so a public *.workers.dev URL cannot serve
- * the lead database by accident. GET /health stays unauthenticated and
- * returns no lead data.
+ * the lead database by accident. GET / and GET /health stay unauthenticated
+ * and return no lead data.
  */
 const worker = {
   async fetch(request: Request, env: LeadFlowEnv): Promise<Response> {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/health') {
       return Response.json({ ok: true, service: 'leadflow-mcp', version: VERSION });
+    }
+    if (request.method === 'GET' && url.pathname === '/') {
+      return Response.json(
+        {
+          service: 'leadflow-mcp',
+          version: VERSION,
+          description:
+            'MCP server for a small-business lead pipeline: capture, score, follow up, and report.',
+          endpoints: {
+            health: '/health',
+            mcp: '/mcp (Streamable HTTP, bearer token required)',
+          },
+          source: 'https://github.com/kfairy9999/leadflow-mcp',
+        },
+        { headers: { 'cache-control': 'public, max-age=300' } },
+      );
     }
     if (url.pathname !== '/mcp') {
       return new Response('Not found', {

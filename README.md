@@ -233,7 +233,7 @@ Inspector launches the command you give it. If Connect fails, the usual cause is
 
 **Cents, not floats.** Currency math stays integer. The CSV column is `estimated_value_cents`.
 
-**Auth matches the bind.** Loopback HTTP checks the `Host` and `Origin` headers with the SDK's localhost guards, which is the DNS-rebinding control the SDK docs ask for. A non-loopback bind without a token is refused at startup. The Worker returns 503 for `/mcp` until `LEADFLOW_AUTH_TOKEN` is at least 16 characters, then requires a bearer token compared in constant time. `GET /health` returns `{ ok: true }` and no lead data. `LEADFLOW_SEED=always` is ignored on the Worker so a request cannot wipe the database.
+**Auth matches the bind.** Loopback HTTP checks the `Host` and `Origin` headers with the SDK's localhost guards, which is the DNS-rebinding control the SDK docs ask for. A non-loopback bind without a token is refused at startup. The Worker returns 503 for `/mcp` until `LEADFLOW_AUTH_TOKEN` is at least 16 characters, then requires a bearer token compared in constant time. `GET /` and `GET /health` return service metadata and no lead data. `LEADFLOW_SEED=always` is ignored on the Worker so a request cannot wipe the database.
 
 **Logging.** Tool success logs the tool name and duration. It does not log the argument object. An integration test creates `demo.replay@example.com` and asserts the log sink does not contain that address.
 
@@ -280,10 +280,11 @@ Core files, same run:
 
 ## Live deployment
 
-| Endpoint                                                   | Auth                            | What it returns                                          |
-| ---------------------------------------------------------- | ------------------------------- | -------------------------------------------------------- |
-| `GET https://leadflow-mcp.kfairley9999.workers.dev/health` | none                            | `{"ok":true,"service":"leadflow-mcp","version":"0.1.1"}` |
-| `POST https://leadflow-mcp.kfairley9999.workers.dev/mcp`   | `Authorization: Bearer <token>` | Streamable HTTP MCP: 11 tools, 3 resources, 2 prompts    |
+| Endpoint                                                   | Auth                            | What it returns                                                     |
+| ---------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------- |
+| `GET https://leadflow-mcp.kfairley9999.workers.dev/`       | none                            | Service name, version, endpoint list, and a link to this repository |
+| `GET https://leadflow-mcp.kfairley9999.workers.dev/health` | none                            | `{"ok":true,"service":"leadflow-mcp","version":"0.1.1"}`            |
+| `POST https://leadflow-mcp.kfairley9999.workers.dev/mcp`   | `Authorization: Bearer <token>` | Streamable HTTP MCP: 11 tools, 3 resources, 2 prompts               |
 
 The Worker is `leadflow-mcp`, bound to the D1 database `leadflow` as `DB`, with `compatibility_date` `2026-11-18` and `nodejs_compat`. The schema comes from `migrations/0001_init.sql`. The fictional seed loads on the first authenticated request because `LEADFLOW_SEED` is `auto`. A request without a token, or with the wrong one, gets `401` and `WWW-Authenticate: Bearer`. The token is a Worker secret. It is not in this repository, and the owner hands it out.
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The Worker answers `GET /` with JSON service metadata (name, version, endpoints, source link) instead of a 404. It returns no lead data. Other paths still 404, and `/mcp` still requires a bearer token.
 - Docs: the Worker is live at `https://leadflow-mcp.kfairley9999.workers.dev` on Cloudflare Workers and D1 (free tier). The README documents the endpoints, bearer-token auth, and client setup for Cursor, Claude Desktop, and the SDK. No code changed.
 
 ## 0.1.1

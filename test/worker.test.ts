@@ -28,6 +28,18 @@ describe('worker entry', () => {
     );
     expect(denied.status).toBe(401);
 
+    const root = await worker.fetch(new Request('https://leadflow.test/'), { DB: db });
+    expect(root.status).toBe(200);
+    const info = (await root.json()) as { service: string; endpoints: Record<string, string> };
+    expect(info.service).toBe('leadflow-mcp');
+    expect(info.endpoints.health).toBe('/health');
+    expect(JSON.stringify(info)).not.toMatch(/lead_[0-9a-z]|@/);
+
+    const postRoot = await worker.fetch(new Request('https://leadflow.test/', { method: 'POST' }), {
+      DB: db,
+    });
+    expect(postRoot.status).toBe(404);
+
     const other = await worker.fetch(new Request('https://leadflow.test/admin'), { DB: db });
     expect(other.status).toBe(404);
   });
