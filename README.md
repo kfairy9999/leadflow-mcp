@@ -9,13 +9,15 @@ Built for Claude Desktop, Cursor, and any other Model Context Protocol client. S
 [![Node](https://img.shields.io/badge/node-%3E%3D22.13-339933)](https://nodejs.org/)
 [![MCP SDK 2.4](https://img.shields.io/badge/MCP%20SDK-2.4.0-111111)](https://github.com/modelcontextprotocol/typescript-sdk)
 [![Tests](https://img.shields.io/badge/tests-117%20passing-2ea44f)](#testing)
-[![Line coverage](https://img.shields.io/badge/lines-99.61%25-2ea44f)](#testing)
-[![Branch coverage](https://img.shields.io/badge/branches-96.88%25-2ea44f)](#testing)
+[![Line coverage](https://img.shields.io/badge/lines-99.62%25-2ea44f)](#testing)
+[![Branch coverage](https://img.shields.io/badge/branches-96.53%25-2ea44f)](#testing)
 [![Mutation score](https://img.shields.io/badge/mutation-82.07%25-2ea44f)](#testing)
 
 This is a portfolio project. The seed data is fictional, and the README does not claim users or production traffic. The numbers below are from a local run on Node v22.23.4.
 
-**Live deployment:** [`https://leadflow-mcp.kfairley9999.workers.dev`](https://leadflow-mcp.kfairley9999.workers.dev/health) runs on Cloudflare Workers (free tier) with D1 holding the fictional Northglass Plumbing seed. [`/health`](https://leadflow-mcp.kfairley9999.workers.dev/health) is public and returns no lead data. `/mcp` requires a bearer token. See [Live deployment](#live-deployment).
+**Live demo:** [`https://leadflow-mcp.kfairley9999.workers.dev`](https://leadflow-mcp.kfairley9999.workers.dev) is a recorded walk through the fictional Northglass Plumbing pipeline: the morning brief, due follow-ups, and two published scores. [`/api`](https://leadflow-mcp.kfairley9999.workers.dev/api) and [`/health`](https://leadflow-mcp.kfairley9999.workers.dev/health) are public JSON and return no lead data. `/mcp` requires a bearer token. See [Live deployment](#live-deployment).
+
+![LeadFlow recorded playground](docs/media/playground.png)
 
 ## Demo
 
@@ -233,7 +235,7 @@ Inspector launches the command you give it. If Connect fails, the usual cause is
 
 **Cents, not floats.** Currency math stays integer. The CSV column is `estimated_value_cents`.
 
-**Auth matches the bind.** Loopback HTTP checks the `Host` and `Origin` headers with the SDK's localhost guards, which is the DNS-rebinding control the SDK docs ask for. A non-loopback bind without a token is refused at startup. The Worker returns 503 for `/mcp` until `LEADFLOW_AUTH_TOKEN` is at least 16 characters, then requires a bearer token compared in constant time. `GET /` and `GET /health` return service metadata and no lead data. `LEADFLOW_SEED=always` is ignored on the Worker so a request cannot wipe the database.
+**Auth matches the bind.** Loopback HTTP checks the `Host` and `Origin` headers with the SDK's localhost guards, which is the DNS-rebinding control the SDK docs ask for. A non-loopback bind without a token is refused at startup. The Worker returns 503 for `/mcp` until `LEADFLOW_AUTH_TOKEN` is at least 16 characters, then requires a bearer token compared in constant time. `GET /` is the recorded HTML playground. Service metadata lives at `GET /api`, and `GET /` still returns that JSON when the client prefers `application/json`. `GET /health` is public JSON. None of those routes return lead data. `LEADFLOW_SEED=always` is ignored on the Worker so a request cannot wipe the database.
 
 **Logging.** Tool success logs the tool name and duration. It does not log the argument object. An integration test creates `demo.replay@example.com` and asserts the log sink does not contain that address.
 
@@ -249,7 +251,7 @@ Inspector launches the command you give it. If Connect fails, the usual cause is
 | MCP client       | Every tool, including invalid and boundary input, unicode, long strings, missing ids, idempotent retries, follow-up instants, an empty pipeline, and CSV escaping. Snapshots lock `tools/list`, `resources/list`, and `prompts/list`.                             |
 | HTTP             | A real `node:http` listen on port 0. Health, 404, a foreign `Host`, a foreign `Origin`, a bad host header, IPv6 loopback, and bearer rejection (missing, empty, wrong) plus a client that presents the token.                                                     |
 | stdio            | A spawned `tsx src/bin/stdio.ts`, and, after the build, a spawned `dist/bin/stdio.js` driven by a real MCP client.                                                                                                                                                |
-| Worker           | The `fetch` entry on the fake D1 and on Miniflare D1. Health is public. `/mcp` is 503 without a long enough token, 401 with the wrong token, and serves the pipeline with the right token. `LEADFLOW_SEED=always` does not wipe.                                  |
+| Worker           | The `fetch` entry on the fake D1 and on Miniflare D1. The HTML playground, `/api`, and `/health` are public and return no lead data. `HEAD` works on those routes. `/mcp` is 503 without a long enough token, 401 with the wrong token, and serves the pipeline with the right token. `LEADFLOW_SEED=always` does not wipe.                                  |
 | Demo             | `runDemo()` against `docs/demo-transcript.txt`.                                                                                                                                                                                                                   |
 | Mutation         | `npm run test:mutate` runs Stryker on `src/domain/**`. It is a separate CI job.                                                                                                                                                                                   |
 
@@ -280,11 +282,12 @@ Core files, same run:
 
 ## Live deployment
 
-| Endpoint                                                   | Auth                            | What it returns                                                     |
-| ---------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------- |
-| `GET https://leadflow-mcp.kfairley9999.workers.dev/`       | none                            | Service name, version, endpoint list, and a link to this repository |
-| `GET https://leadflow-mcp.kfairley9999.workers.dev/health` | none                            | `{"ok":true,"service":"leadflow-mcp","version":"0.1.1"}`            |
-| `POST https://leadflow-mcp.kfairley9999.workers.dev/mcp`   | `Authorization: Bearer <token>` | Streamable HTTP MCP: 11 tools, 3 resources, 2 prompts               |
+| Endpoint                                                   | Auth                            | What it returns                                                                                          |
+| ---------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `GET https://leadflow-mcp.kfairley9999.workers.dev/`       | none                            | Recorded HTML playground of the fictional Northglass pipeline. JSON if `Accept` prefers `application/json`. |
+| `GET https://leadflow-mcp.kfairley9999.workers.dev/api`    | none                            | Service name, version, endpoint list, and a link to this repository                                      |
+| `GET https://leadflow-mcp.kfairley9999.workers.dev/health` | none                            | `{"ok":true,"service":"leadflow-mcp","version":"0.1.1"}`                                                 |
+| `POST https://leadflow-mcp.kfairley9999.workers.dev/mcp`   | `Authorization: Bearer <token>` | Streamable HTTP MCP: 11 tools, 3 resources, 2 prompts                                                    |
 
 The Worker is `leadflow-mcp`, bound to the D1 database `leadflow` as `DB`, with `compatibility_date` `2026-11-18` and `nodejs_compat`. The schema comes from `migrations/0001_init.sql`. The fictional seed loads on the first authenticated request because `LEADFLOW_SEED` is `auto`. A request without a token, or with the wrong one, gets `401` and `WWW-Authenticate: Bearer`. The token is a Worker secret. It is not in this repository, and the owner hands it out.
 

@@ -28,12 +28,54 @@ describe('worker entry', () => {
     );
     expect(denied.status).toBe(401);
 
-    const root = await worker.fetch(new Request('https://leadflow.test/'), { DB: db });
-    expect(root.status).toBe(200);
-    const info = (await root.json()) as { service: string; endpoints: Record<string, string> };
+    const api = await worker.fetch(new Request('https://leadflow.test/api'), { DB: db });
+    expect(api.status).toBe(200);
+    expect(api.headers.get('x-content-type-options')).toBe('nosniff');
+    const info = (await api.json()) as { service: string; endpoints: Record<string, string> };
     expect(info.service).toBe('leadflow-mcp');
     expect(info.endpoints.health).toBe('/health');
-    expect(JSON.stringify(info)).not.toMatch(/lead_[0-9a-z]|@/);
+    expect(info.endpoints.api).toBe('/api');
+    expect(JSON.stringify(info)).not.toMatch(/lead_[0-9a-z]|@example\.com|555-/);
+
+    const negotiated = await worker.fetch(
+      new Request('https://leadflow.test/', { headers: { accept: 'application/json' } }),
+      { DB: db },
+    );
+    expect(negotiated.headers.get('content-type')).toMatch(/application\/json/);
+    expect(await negotiated.json()).toMatchObject({ service: 'leadflow-mcp' });
+
+    const page = await worker.fetch(new Request('https://leadflow.test/'), { DB: db });
+    expect(page.status).toBe(200);
+    expect(page.headers.get('content-type')).toMatch(/text\/html/);
+    expect(page.headers.get('content-security-policy')).toMatch(/default-src 'none'/);
+    expect(page.headers.get('x-frame-options')).toBe('DENY');
+    const html = await page.text();
+    expect(html).toContain('The front desk for a one-shop business.');
+    expect(html).toContain('Marina Cho');
+    expect(html).toContain('Recorded demo');
+    expect(html).not.toMatch(/LEADFLOW_AUTH_TOKEN/);
+
+    const head = await worker.fetch(new Request('https://leadflow.test/', { method: 'HEAD' }), {
+      DB: db,
+    });
+    expect(head.status).toBe(200);
+    expect(head.headers.get('content-type')).toMatch(/text\/html/);
+    expect(await head.text()).toBe('');
+
+    const headHealth = await worker.fetch(
+      new Request('https://leadflow.test/health', { method: 'HEAD' }),
+      { DB: db },
+    );
+    expect(headHealth.status).toBe(200);
+    expect(headHealth.headers.get('content-type')).toMatch(/application\/json/);
+
+    const robots = await worker.fetch(new Request('https://leadflow.test/robots.txt'), { DB: db });
+    expect(robots.status).toBe(200);
+    expect(await robots.text()).toMatch(/User-agent: \*/);
+
+    const icon = await worker.fetch(new Request('https://leadflow.test/favicon.svg'), { DB: db });
+    expect(icon.status).toBe(200);
+    expect(icon.headers.get('content-type')).toMatch(/image\/svg\+xml/);
 
     const postRoot = await worker.fetch(new Request('https://leadflow.test/', { method: 'POST' }), {
       DB: db,
