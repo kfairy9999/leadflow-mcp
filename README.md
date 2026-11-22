@@ -12,7 +12,7 @@ Built for Claude Desktop, Cursor, and any other Model Context Protocol client. S
 [![Line coverage](https://img.shields.io/badge/lines-99.62%25-2ea44f)](#testing)
 [![Branch coverage](https://img.shields.io/badge/branches-96.53%25-2ea44f)](#testing)
 [![Mutation score](https://img.shields.io/badge/mutation-82.07%25-2ea44f)](#testing)
-[![M8ven Score](https://m8ven.ai/badge/mcp/kfairy9999/leadflow-mcp)](https://m8ven.ai/mcp/kfairy9999/leadflow-mcp?s=readme)
+[![M8ven Score](https://m8ven.ai/badge/mcp/kfairy9999-leadflow-mcp-7vwcfg?v=cc5a0b7df024e323aeb1755945a4ccd3)](https://m8ven.ai/mcp/kfairy9999-leadflow-mcp-7vwcfg?s=readme)
 
 This is a portfolio project. The seed data is fictional, and the README does not claim users or production traffic. The numbers below are from a local run on Node v22.23.4.
 
