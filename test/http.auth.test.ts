@@ -113,6 +113,35 @@ describe('streamable HTTP auth', () => {
     expect(await rawStatus(server.port, 'not a host')).toBe(400);
     expect(await rawStatus(server.port, '127.0.0.1')).toBe(404);
   });
+  it('rate-limits /mcp and leaves /health open', async () => {
+    const started = await seededSqlite('auto');
+    const server = await startHttpServer({
+      host: '127.0.0.1',
+      port: 0,
+      repository: started.repository,
+      logger: started.logger,
+      clock: started.clock,
+      staleAfterDays: 7,
+      authToken: TOKEN,
+      rateLimitMax: 2,
+      rateLimitWindowMs: 60_000,
+    });
+    closers.push(server.close);
+
+    const headers = { authorization: `Bearer ${TOKEN}` };
+    const first = await fetch(`${server.url}/mcp`, { method: 'POST', headers });
+    const second = await fetch(`${server.url}/mcp`, { method: 'POST', headers });
+    const third = await fetch(`${server.url}/mcp`, { method: 'POST', headers });
+    expect(first.status).not.toBe(429);
+    expect(second.status).not.toBe(429);
+    expect(third.status).toBe(429);
+    expect(third.headers.get('retry-after')).toBeTruthy();
+    const body = (await third.json()) as { error: string };
+    expect(body.error).toBe('rate_limited');
+
+    const health = await fetch(`${server.url}/health`);
+    expect(health.status).toBe(200);
+  });
 });
 
 function rawStatus(port: number, host: string): Promise<number> {

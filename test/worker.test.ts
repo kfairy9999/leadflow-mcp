@@ -171,4 +171,54 @@ describe('worker entry', () => {
       spy.mockRestore();
     }
   });
+
+  it('rate-limits /mcp after the token is set and does not limit /health', async () => {
+    const db = await createFakeD1();
+    const env = {
+      DB: db,
+      LEADFLOW_AUTH_TOKEN: TOKEN,
+      LEADFLOW_RATE_LIMIT_MAX: '2',
+      LEADFLOW_RATE_LIMIT_WINDOW_MS: '60000',
+    };
+    const headers = { authorization: `Bearer ${TOKEN}` };
+    const first = await worker.fetch(
+      new Request('https://leadflow.test/mcp', { method: 'POST', headers }),
+      env,
+    );
+    const second = await worker.fetch(
+      new Request('https://leadflow.test/mcp', { method: 'POST', headers }),
+      env,
+    );
+    const third = await worker.fetch(
+      new Request('https://leadflow.test/mcp', { method: 'POST', headers }),
+      env,
+    );
+    expect(first.status).not.toBe(429);
+    expect(second.status).not.toBe(429);
+    expect(third.status).toBe(429);
+    expect(third.headers.get('retry-after')).toBeTruthy();
+    const body = (await third.json()) as { error: string };
+    expect(body.error).toBe('rate_limited');
+
+    const otherClient = await worker.fetch(
+      new Request('https://leadflow.test/mcp', {
+        method: 'POST',
+        headers: { ...headers, 'cf-connecting-ip': '203.0.113.40' },
+      }),
+      env,
+    );
+    expect(otherClient.status).not.toBe(429);
+
+    const health = await worker.fetch(new Request('https://leadflow.test/health'), env);
+    expect(health.status).toBe(200);
+
+    const fallback = await worker.fetch(
+      new Request('https://leadflow.test/mcp', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${TOKEN}` },
+      }),
+      { DB: db, LEADFLOW_AUTH_TOKEN: TOKEN, LEADFLOW_RATE_LIMIT_MAX: 'nope' },
+    );
+    expect(fallback.status).not.toBe(503);
+  });
 });

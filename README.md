@@ -8,9 +8,9 @@ Built for Claude Desktop, Cursor, and any other Model Context Protocol client. S
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.13-339933)](https://nodejs.org/)
 [![MCP SDK 2.4](https://img.shields.io/badge/MCP%20SDK-2.4.0-111111)](https://github.com/modelcontextprotocol/typescript-sdk)
-[![Tests](https://img.shields.io/badge/tests-117%20passing-2ea44f)](#testing)
-[![Line coverage](https://img.shields.io/badge/lines-99.62%25-2ea44f)](#testing)
-[![Branch coverage](https://img.shields.io/badge/branches-96.53%25-2ea44f)](#testing)
+[![Tests](https://img.shields.io/badge/tests-123%20passing-2ea44f)](#testing)
+[![Line coverage](https://img.shields.io/badge/lines-99.54%25-2ea44f)](#testing)
+[![Branch coverage](https://img.shields.io/badge/branches-95.75%25-2ea44f)](#testing)
 [![Mutation score](https://img.shields.io/badge/mutation-82.07%25-2ea44f)](#testing)
 [![M8ven Score](https://m8ven.ai/badge/mcp/kfairy9999-leadflow-mcp-7vwcfg?v=cc5a0b7df024e323aeb1755945a4ccd3)](https://m8ven.ai/mcp/kfairy9999-leadflow-mcp-7vwcfg?s=readme)
 
@@ -173,16 +173,18 @@ Validation failures come back as tool results with `isError: true` and the Zod m
 
 ## Configuration
 
-| Variable              | Default                  | Meaning                                                                                                                 |
-| --------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `LEADFLOW_DB`         | `./data/leadflow.sqlite` | SQLite path, or `:memory:`.                                                                                             |
-| `LEADFLOW_SEED`       | `auto`                   | `auto` seeds an empty database. `always` wipes and reseeds (Node only; the Worker ignores it). `never` leaves it empty. |
-| `LEADFLOW_LOG_LEVEL`  | `info`                   | `debug`, `info`, `warn`, `error`. JSON lines on stderr.                                                                 |
-| `LEADFLOW_HTTP_HOST`  | `127.0.0.1`              | Bind address. Any non-loopback host requires `LEADFLOW_AUTH_TOKEN`.                                                     |
-| `LEADFLOW_HTTP_PORT`  | `8787`                   | HTTP port. `0` picks a free port.                                                                                       |
-| `LEADFLOW_STALE_DAYS` | `7`                      | Quiet-open-lead window, 1–90.                                                                                           |
-| `LEADFLOW_NOW`        | unset                    | Pins the clock. For demos and tests. Leave it unset on a real desk.                                                     |
-| `LEADFLOW_AUTH_TOKEN` | unset                    | Bearer token, at least 16 characters. Required off loopback and on the Worker.                                          |
+| Variable                        | Default                  | Meaning                                                                                                                 |
+| ------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `LEADFLOW_DB`                   | `./data/leadflow.sqlite` | SQLite path, or `:memory:`.                                                                                             |
+| `LEADFLOW_SEED`                 | `auto`                   | `auto` seeds an empty database. `always` wipes and reseeds (Node only; the Worker ignores it). `never` leaves it empty. |
+| `LEADFLOW_LOG_LEVEL`            | `info`                   | `debug`, `info`, `warn`, `error`. JSON lines on stderr.                                                                 |
+| `LEADFLOW_HTTP_HOST`            | `127.0.0.1`              | Bind address. Any non-loopback host requires `LEADFLOW_AUTH_TOKEN`.                                                     |
+| `LEADFLOW_HTTP_PORT`            | `8787`                   | HTTP port. `0` picks a free port.                                                                                       |
+| `LEADFLOW_STALE_DAYS`           | `7`                      | Quiet-open-lead window, 1–90.                                                                                           |
+| `LEADFLOW_NOW`                  | unset                    | Pins the clock. For demos and tests. Leave it unset on a real desk.                                                     |
+| `LEADFLOW_AUTH_TOKEN`           | unset                    | Bearer token, at least 16 characters. Required off loopback and on the Worker.                                          |
+| `LEADFLOW_RATE_LIMIT_MAX`       | `60`                     | Max `/mcp` requests per client per window on HTTP and the Worker. `0` disables the limit.                               |
+| `LEADFLOW_RATE_LIMIT_WINDOW_MS` | `60000`                  | Rate-limit window in milliseconds, 1000–3600000.                                                                        |
 
 Logs go to stderr. stdout is the stdio protocol and is left alone. The logger redacts emails, phone-shaped strings, bearer tokens, and fields named `email`, `phone`, `notes`, `summary`, `contactName`, and similar. The database file itself holds whatever you typed into a lead. Treat `data/` as private. It is gitignored.
 
@@ -208,7 +210,7 @@ Stdio, after `npm run build`. Replace the path.
 
 Claude Desktop reads that object from `claude_desktop_config.json`. Cursor reads the same `mcpServers` object from its MCP settings. Restart the host after saving. The first session creates the SQLite file and, because `LEADFLOW_SEED` defaults to `auto`, loads the fictional shop when the file is empty.
 
-For the loopback HTTP server, point the host at `http://127.0.0.1:8787/mcp`. The process refuses to bind a non-loopback address unless `LEADFLOW_AUTH_TOKEN` is set, and `/mcp` then requires `Authorization: Bearer <token>`.
+For the loopback HTTP server, point the host at `http://127.0.0.1:8787/mcp`. The process refuses to bind a non-loopback address unless `LEADFLOW_AUTH_TOKEN` is set, and `/mcp` then requires `Authorization: Bearer <token>`. `/mcp` is also rate-limited per client (default 60 requests per minute, overridable with `LEADFLOW_RATE_LIMIT_MAX` and `LEADFLOW_RATE_LIMIT_WINDOW_MS`). `/health` is not limited.
 
 ## MCP Inspector
 
@@ -236,34 +238,34 @@ Inspector launches the command you give it. If Connect fails, the usual cause is
 
 **Cents, not floats.** Currency math stays integer. The CSV column is `estimated_value_cents`.
 
-**Auth matches the bind.** Loopback HTTP checks the `Host` and `Origin` headers with the SDK's localhost guards, which is the DNS-rebinding control the SDK docs ask for. A non-loopback bind without a token is refused at startup. The Worker returns 503 for `/mcp` until `LEADFLOW_AUTH_TOKEN` is at least 16 characters, then requires a bearer token compared in constant time. `GET /` is the recorded HTML playground. Service metadata lives at `GET /api`, and `GET /` still returns that JSON when the client prefers `application/json`. `GET /health` is public JSON. None of those routes return lead data. `LEADFLOW_SEED=always` is ignored on the Worker so a request cannot wipe the database.
+**Auth matches the bind.** Loopback HTTP checks the `Host` and `Origin` headers with the SDK's localhost guards, which is the DNS-rebinding control the SDK docs ask for. A non-loopback bind without a token is refused at startup. The Worker returns 503 for `/mcp` until `LEADFLOW_AUTH_TOKEN` is at least 16 characters, then requires a bearer token compared in constant time. Both the Node HTTP server and the Worker rate-limit `/mcp` (default 60 requests per minute per client). A burst is answered with `429`, `Retry-After`, and `error: "rate_limited"`. The counter is in-process, so on Workers it is per isolate, not a global cluster limit. `GET /` is the recorded HTML playground. Service metadata lives at `GET /api`, and `GET /` still returns that JSON when the client prefers `application/json`. `GET /health` is public JSON. None of those routes return lead data. `LEADFLOW_SEED=always` is ignored on the Worker so a request cannot wipe the database.
 
 **Logging.** Tool success logs the tool name and duration. It does not log the argument object. An integration test creates `demo.replay@example.com` and asserts the log sink does not contain that address.
 
 ## Testing
 
-`npm test` is Vitest. On this tree it is **113 tests**. `npm run test:e2e`, after `npm run build`, adds **4** tests that spawn `dist/bin/stdio.js` and `dist/bin/http.js`. The badges count both: **117 passing**. The coverage figures are from `npm run test:coverage` on Node v22.23.4. They do not include the spawned build, which is not instrumented.
+`npm test` is Vitest. On this tree it is **119 tests**. `npm run test:e2e`, after `npm run build`, adds **4** tests that spawn `dist/bin/stdio.js` and `dist/bin/http.js`. The badges count both: **123 passing**. The coverage figures are from `npm run test:coverage` on Node v22.23.4. They do not include the spawned build, which is not instrumented.
 
-| Layer            | What it drives                                                                                                                                                                                                                                                                                                              |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit             | Scoring boundaries and hand-computed totals, fast-check invariants (0–100, factors sum to the score, monotonic source, urgency, value, open stage, recency, and reachability), pipeline math, CSV quoting and formula neutralization, hashing, redaction, config.                                                           |
-| Repository       | The same cases on `node:sqlite` and on a fake D1. Idempotency races, optimistic concurrency, LIKE escaping, timezone instants, the 500 and 5,000 caps, and fault mapping for unique, foreign-key, and I/O errors.                                                                                                           |
-| Migration parity | Empty database, a second run that applies nothing, and the same round trip on `node:sqlite` and on Miniflare D1. No Cloudflare credentials.                                                                                                                                                                                 |
-| MCP client       | Every tool, including invalid and boundary input, unicode, long strings, missing ids, idempotent retries, follow-up instants, an empty pipeline, and CSV escaping. Snapshots lock `tools/list`, `resources/list`, and `prompts/list`.                                                                                       |
-| HTTP             | A real `node:http` listen on port 0. Health, 404, a foreign `Host`, a foreign `Origin`, a bad host header, IPv6 loopback, and bearer rejection (missing, empty, wrong) plus a client that presents the token.                                                                                                               |
-| stdio            | A spawned `tsx src/bin/stdio.ts`, and, after the build, a spawned `dist/bin/stdio.js` driven by a real MCP client.                                                                                                                                                                                                          |
-| Worker           | The `fetch` entry on the fake D1 and on Miniflare D1. The HTML playground, `/api`, and `/health` are public and return no lead data. `HEAD` works on those routes. `/mcp` is 503 without a long enough token, 401 with the wrong token, and serves the pipeline with the right token. `LEADFLOW_SEED=always` does not wipe. |
-| Demo             | `runDemo()` against `docs/demo-transcript.txt`.                                                                                                                                                                                                                                                                             |
-| Mutation         | `npm run test:mutate` runs Stryker on `src/domain/**`. It is a separate CI job.                                                                                                                                                                                                                                             |
+| Layer            | What it drives                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit             | Scoring boundaries and hand-computed totals, fast-check invariants (0–100, factors sum to the score, monotonic source, urgency, value, open stage, recency, and reachability), pipeline math, CSV quoting and formula neutralization, hashing, redaction, config, and the `/mcp` rate limiter.                                                                                     |
+| Repository       | The same cases on `node:sqlite` and on a fake D1. Idempotency races, optimistic concurrency, LIKE escaping, timezone instants, the 500 and 5,000 caps, and fault mapping for unique, foreign-key, and I/O errors.                                                                                                                                                                  |
+| Migration parity | Empty database, a second run that applies nothing, and the same round trip on `node:sqlite` and on Miniflare D1. No Cloudflare credentials.                                                                                                                                                                                                                                        |
+| MCP client       | Every tool, including invalid and boundary input, unicode, long strings, missing ids, idempotent retries, follow-up instants, an empty pipeline, and CSV escaping. Snapshots lock `tools/list`, `resources/list`, and `prompts/list`.                                                                                                                                              |
+| HTTP             | A real `node:http` listen on port 0. Health, 404, a foreign `Host`, a foreign `Origin`, a bad host header, IPv6 loopback, bearer rejection (missing, empty, wrong) plus a client that presents the token, and a 429 when `/mcp` exceeds the rate limit.                                                                                                                            |
+| stdio            | A spawned `tsx src/bin/stdio.ts`, and, after the build, a spawned `dist/bin/stdio.js` driven by a real MCP client.                                                                                                                                                                                                                                                                 |
+| Worker           | The `fetch` entry on the fake D1 and on Miniflare D1. The HTML playground, `/api`, and `/health` are public and return no lead data. `HEAD` works on those routes. `/mcp` is 503 without a long enough token, 401 with the wrong token, rate-limited with 429 when the client exceeds the cap, and serves the pipeline with the right token. `LEADFLOW_SEED=always` does not wipe. |
+| Demo             | `runDemo()` against `docs/demo-transcript.txt`.                                                                                                                                                                                                                                                                                                                                    |
+| Mutation         | `npm run test:mutate` runs Stryker on `src/domain/**`. It is a separate CI job.                                                                                                                                                                                                                                                                                                    |
 
 Coverage from `npm run test:coverage` on this tree, V8, including `src/**` and excluding `src/bin/**`:
 
 |            | Percent | Count     |
 | ---------- | ------- | --------- |
-| Statements | 99.29%  | 851 / 857 |
-| Branches   | 96.88%  | 528 / 545 |
-| Functions  | 99.19%  | 245 / 247 |
-| Lines      | 99.61%  | 771 / 774 |
+| Statements | 99.18%  | 969 / 977 |
+| Branches   | 95.75%  | 632 / 660 |
+| Functions  | 99.25%  | 265 / 267 |
+| Lines      | 99.54%  | 877 / 881 |
 
 Core files, same run:
 
@@ -388,6 +390,7 @@ src/mcp/            tool, resource, and prompt registration
 src/domain/         scoring, pipeline, CSV, Zod schemas
 src/db/             SQL, migrations, repository, seed, both drivers
 src/http/serve.ts   loopback Streamable HTTP
+src/http/rate-limit.ts  /mcp rate limiter used by HTTP and the Worker
 src/worker.ts       Cloudflare Workers fetch handler
 migrations/         Wrangler D1 migration, kept equal to the embedded SQL
 test/               unit, property, repository, contract, MCP, HTTP, stdio, worker, e2e, demo
@@ -400,7 +403,7 @@ Scripts: `dev`, `dev:http`, `build`, `start`, `start:http`, `seed`, `demo`, `tes
 
 ## License
 
-[MIT](LICENSE). Copyright 2026 Kevin Fairley.
+[MIT](LICENSE). Copyright 2026 Kevin Fairley. Privacy: [PRIVACY.md](PRIVACY.md). To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## About the author
 

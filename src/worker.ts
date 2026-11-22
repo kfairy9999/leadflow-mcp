@@ -3,6 +3,16 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import { bearerMatches, MIN_AUTH_TOKEN_LENGTH } from './auth.js';
 import { systemClock } from './clock.js';
 import { parseStaleDays } from './config.js';
+import {
+  DEFAULT_RATE_LIMIT_MAX,
+  DEFAULT_RATE_LIMIT_WINDOW_MS,
+  createRateLimiter,
+  parseRateLimitMax,
+  parseRateLimitWindowMs,
+  rateLimitKeyFromRequest,
+  rateLimitedResponse,
+  type RateLimiter,
+} from './http/rate-limit.js';
 import { D1SqlDatabase, type D1LikeDatabase } from './db/d1.js';
 import { bootstrap } from './db/seed.js';
 import { createLogger, parseLogLevel } from './logger.js';
@@ -16,6 +26,8 @@ export interface LeadFlowEnv {
   LEADFLOW_SEED?: string;
   LEADFLOW_STALE_DAYS?: string;
   LEADFLOW_LOG_LEVEL?: string;
+  LEADFLOW_RATE_LIMIT_MAX?: string;
+  LEADFLOW_RATE_LIMIT_WINDOW_MS?: string;
 }
 
 const SECURITY_HEADERS = {
@@ -86,7 +98,11 @@ const worker = {
         headers: { 'content-type': 'text/plain; charset=utf-8' },
       });
     }
-    const denied = authorize(request, env.LEADFLOW_AUTH_TOKEN);
+    const unconfigured = missingAuthToken(env.LEADFLOW_AUTH_TOKEN);
+    if (unconfigured) return unconfigured;
+    const limited = rateLimiterFor(env).check(rateLimitKeyFromRequest(request));
+    if (!limited.allowed) return rateLimitedResponse(limited);
+    const denied = unauthorized(request, env.LEADFLOW_AUTH_TOKEN);
     if (denied) return denied;
 
     const logger = createLogger({ level: safeLevel(env.LEADFLOW_LOG_LEVEL) });
@@ -145,7 +161,21 @@ function send(request: Request, body: string, init: ResponseInit = {}): Response
   return new Response(request.method === 'HEAD' ? null : body, { ...init, headers });
 }
 
-function authorize(request: Request, token: string | undefined): Response | null {
+const mcpRateLimiters = new WeakMap<object, RateLimiter>();
+
+function rateLimiterFor(env: LeadFlowEnv): RateLimiter {
+  let limiter = mcpRateLimiters.get(env);
+  if (!limiter) {
+    limiter = createRateLimiter({
+      maxRequests: safeRateLimitMax(env.LEADFLOW_RATE_LIMIT_MAX),
+      windowMs: safeRateLimitWindowMs(env.LEADFLOW_RATE_LIMIT_WINDOW_MS),
+    });
+    mcpRateLimiters.set(env, limiter);
+  }
+  return limiter;
+}
+
+function missingAuthToken(token: string | undefined): Response | null {
   if (!token || token.trim().length < MIN_AUTH_TOKEN_LENGTH) {
     return new Response(
       'LeadFlow refuses to serve until LEADFLOW_AUTH_TOKEN is set to at least 16 characters.',
@@ -155,7 +185,11 @@ function authorize(request: Request, token: string | undefined): Response | null
       },
     );
   }
-  if (!bearerMatches(request.headers.get('authorization'), token.trim())) {
+  return null;
+}
+
+function unauthorized(request: Request, token: string | undefined): Response | null {
+  if (!token || !bearerMatches(request.headers.get('authorization'), token.trim())) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), {
       status: 401,
       headers: {
@@ -181,5 +215,21 @@ function safeStaleDays(value: string | undefined): number {
     return parseStaleDays(value);
   } catch {
     return 7;
+  }
+}
+
+function safeRateLimitMax(value: string | undefined): number {
+  try {
+    return parseRateLimitMax(value, DEFAULT_RATE_LIMIT_MAX);
+  } catch {
+    return DEFAULT_RATE_LIMIT_MAX;
+  }
+}
+
+function safeRateLimitWindowMs(value: string | undefined): number {
+  try {
+    return parseRateLimitWindowMs(value, DEFAULT_RATE_LIMIT_WINDOW_MS);
+  } catch {
+    return DEFAULT_RATE_LIMIT_WINDOW_MS;
   }
 }

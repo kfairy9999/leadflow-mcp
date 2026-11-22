@@ -8,6 +8,13 @@ import {
 } from '@modelcontextprotocol/node';
 
 import { bearerMatches } from '../auth.js';
+import {
+  DEFAULT_RATE_LIMIT_MAX,
+  DEFAULT_RATE_LIMIT_WINDOW_MS,
+  createRateLimiter,
+  rateLimitKeyFromNodeRequest,
+  writeRateLimited,
+} from './rate-limit.js';
 import type { Clock } from '../clock.js';
 import type { LeadRepository } from '../db/repository.js';
 import type { Logger } from '../logger.js';
@@ -22,6 +29,8 @@ export interface HttpServerOptions {
   clock: Clock;
   staleAfterDays: number;
   authToken: string | null;
+  rateLimitMax?: number;
+  rateLimitWindowMs?: number;
 }
 
 export interface RunningServer {
@@ -49,6 +58,10 @@ export async function startHttpServer(options: HttpServerOptions): Promise<Runni
   });
   const validateHost = localhostHostValidation();
   const validateOrigin = localhostOriginValidation();
+  const rateLimiter = createRateLimiter({
+    maxRequests: options.rateLimitMax ?? DEFAULT_RATE_LIMIT_MAX,
+    windowMs: options.rateLimitWindowMs ?? DEFAULT_RATE_LIMIT_WINDOW_MS,
+  });
 
   const server = createServer((req, res) => {
     const url = parseRequestUrl(req);
@@ -68,6 +81,11 @@ export async function startHttpServer(options: HttpServerOptions): Promise<Runni
     if (url.pathname !== '/mcp') {
       res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
       res.end('Not found');
+      return;
+    }
+    const limited = rateLimiter.check(rateLimitKeyFromNodeRequest(req));
+    if (!limited.allowed) {
+      writeRateLimited(res, limited);
       return;
     }
     if (

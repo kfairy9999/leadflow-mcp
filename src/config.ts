@@ -1,6 +1,12 @@
 import path from 'node:path';
 
 import { ConfigError } from './domain/errors.js';
+import {
+  DEFAULT_RATE_LIMIT_MAX,
+  DEFAULT_RATE_LIMIT_WINDOW_MS,
+  parseRateLimitMax,
+  parseRateLimitWindowMs,
+} from './http/rate-limit.js';
 import { parseLogLevel, type LogLevel } from './logger.js';
 
 export type SeedMode = 'auto' | 'always' | 'never';
@@ -14,6 +20,8 @@ export interface AppConfig {
   staleAfterDays: number;
   now: Date | null;
   authToken: string | null;
+  rateLimitMax: number;
+  rateLimitWindowMs: number;
 }
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', 'localhost']);
@@ -35,6 +43,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     staleAfterDays: parseStaleDays(env.LEADFLOW_STALE_DAYS),
     now: parseNow(env.LEADFLOW_NOW),
     authToken,
+    rateLimitMax: parseMax(env.LEADFLOW_RATE_LIMIT_MAX),
+    rateLimitWindowMs: parseWindow(env.LEADFLOW_RATE_LIMIT_WINDOW_MS),
   };
 }
 
@@ -83,6 +93,22 @@ function parseLevel(value: string | undefined): LogLevel {
     return parseLogLevel(value);
   } catch (error) {
     throw new ConfigError(error instanceof Error ? error.message : 'Invalid log level.');
+  }
+}
+
+function parseMax(value: string | undefined): number {
+  try {
+    return parseRateLimitMax(value, DEFAULT_RATE_LIMIT_MAX);
+  } catch (error) {
+    throw new ConfigError(error instanceof Error ? error.message : 'Invalid rate limit.');
+  }
+}
+
+function parseWindow(value: string | undefined): number {
+  try {
+    return parseRateLimitWindowMs(value, DEFAULT_RATE_LIMIT_WINDOW_MS);
+  } catch (error) {
+    throw new ConfigError(error instanceof Error ? error.message : 'Invalid rate limit window.');
   }
 }
 

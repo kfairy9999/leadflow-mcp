@@ -25,6 +25,8 @@ async function main(): Promise<void> {
     clock,
     staleAfterDays: config.staleAfterDays,
     authToken: config.authToken,
+    rateLimitMax: config.rateLimitMax,
+    rateLimitWindowMs: config.rateLimitWindowMs,
   });
   logger.info('server.start', {
     transport: 'http',

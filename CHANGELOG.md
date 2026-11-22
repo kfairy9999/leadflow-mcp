@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added `PRIVACY.md` and `SECURITY.md`, and linked both from the README.
+- Streamable HTTP and the Worker rate-limit `/mcp` (default 60 requests per minute per client). Exceeding the cap returns `429` with `Retry-After`. `/health` and the public Worker routes are not limited. Override with `LEADFLOW_RATE_LIMIT_MAX` and `LEADFLOW_RATE_LIMIT_WINDOW_MS`; `0` disables the cap.
+
 - `GET /` is now a recorded HTML playground of the fictional Northglass Plumbing demo (pipeline, due follow-ups, and two published scores). It returns no live lead data. Service metadata moved to `GET /api`, and `GET /` still returns that JSON when the client prefers `application/json`. `/health` is unchanged. `/mcp` still requires a bearer token.
 - The Worker answers `HEAD` on the public routes, serves `robots.txt` and a favicon, and sets CSP, `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy` on those responses.
 - Docs: the Worker is live at `https://leadflow-mcp.kfairley9999.workers.dev` on Cloudflare Workers and D1 (free tier). The README documents the endpoints, bearer-token auth, and client setup for Cursor, Claude Desktop, and the SDK. No code changed.
