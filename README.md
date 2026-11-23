@@ -280,6 +280,12 @@ Core files, same run:
 
 `npm audit --omit=dev` on this lockfile reports no production vulnerabilities. A full `npm audit` reports 12 high and 5 moderate advisories, all in devDependencies (Vitest, typescript-eslint, Stryker, and transitive packages such as `picomatch`). They are not in the runtime dependency tree.
 
+## Used inside Provefirst Desk
+
+Since November 22, 2026 these same 11 tools also run inside the [Pulse CRM](https://github.com/kfairy9999/pulse-crm) Worker (branch `provefirst-desk`, vendored from this repository at `86ec67d`). There they read and write Pulse's real D1 database through `leads` and `follow_ups` views, so an assistant and the owner's CRM screens share one pipeline. LeadFlow's `qualified` stage maps to Pulse's renamed **Qualified** column (formerly Booked). That deployment needs a bearer token, never seeds sample data, and is not public.
+
+This repository and the `leadflow-mcp.kfairley9999.workers.dev` demo below are unchanged: the demo still runs on its own D1 with fictional `@example.com` leads.
+
 ## Live deployment
 
 | Endpoint                                                   | Auth                            | What it returns                                                                                             |
