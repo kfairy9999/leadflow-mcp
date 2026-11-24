@@ -4,7 +4,7 @@ An MCP server that lets an AI assistant run the front desk for a one-shop servic
 
 Built for Claude Desktop, Cursor, and any other Model Context Protocol client. SQLite on disk. No paid API, no account, no network call on the tool path.
 
-[![CI](https://github.com/kfairy9999/leadflow-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/kfairy9999/leadflow-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/kfairley9999/leadflow-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/kfairley9999/leadflow-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.13-339933)](https://nodejs.org/)
 [![MCP SDK 2.4](https://img.shields.io/badge/MCP%20SDK-2.4.0-111111)](https://github.com/modelcontextprotocol/typescript-sdk)
@@ -78,7 +78,7 @@ The rest of the session creates a lead twice with the same idempotency key. The 
 Node.js **22.13 or newer**. `node:sqlite` ships in that runtime. Node 20 cannot run this project.
 
 ```bash
-git clone https://github.com/kfairy9999/leadflow-mcp.git
+git clone https://github.com/kfairley9999/leadflow-mcp.git
 cd leadflow-mcp
 npm install
 npm test
@@ -407,4 +407,4 @@ Scripts: `dev`, `dev:http`, `build`, `start`, `start:http`, `seed`, `demo`, `tes
 
 ## About the author
 
-Kevin Fairley is an AI engineer. Portfolio: [kfairy9999.github.io](https://kfairy9999.github.io). LinkedIn: [kevin-fairley-94330b42a](https://www.linkedin.com/in/kevin-fairley-94330b42a). GitHub: [kfairy9999](https://github.com/kfairy9999).
+Kevin Fairley is an AI engineer. Portfolio: [kfairley9999.github.io](https://kfairley9999.github.io). LinkedIn: [kevin-fairley-94330b42a](https://www.linkedin.com/in/kevin-fairley-94330b42a). GitHub: [kfairley9999](https://github.com/kfairley9999).

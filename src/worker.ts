@@ -140,7 +140,7 @@ function serviceMetadata() {
       api: '/api',
       mcp: '/mcp (Streamable HTTP, bearer token required)',
     },
-    source: 'https://github.com/kfairy9999/leadflow-mcp',
+    source: 'https://github.com/kfairley9999/leadflow-mcp',
   };
 }
 

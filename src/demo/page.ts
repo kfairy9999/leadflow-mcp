@@ -210,8 +210,8 @@ export const PLAYGROUND_HTML = `<!DOCTYPE html>
   <h1>The front desk for a one-shop business.</h1>
   <p class="lede">An AI assistant captures a lead, scores it with a published rubric, and tells you who to call first. No paid APIs. This page replays a recorded demo. It does not talk to a live book of business.</p>
   <p class="cta">
-    <a href="https://github.com/kfairy9999/leadflow-mcp">Source on GitHub</a>
-    <a href="https://github.com/kfairy9999/leadflow-mcp#quickstart">Install locally</a>
+    <a href="https://github.com/kfairley9999/leadflow-mcp">Source on GitHub</a>
+    <a href="https://github.com/kfairley9999/leadflow-mcp#quickstart">Install locally</a>
     <a href="https://www.agensi.io/skills/leadflow-mcp-small-business-lead-pipeline">Agensi listing</a>
   </p>
 </header>

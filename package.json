@@ -5,13 +5,13 @@
   "type": "module",
   "license": "MIT",
   "author": "Kevin Fairley",
-  "homepage": "https://kfairy9999.github.io",
+  "homepage": "https://kfairley9999.github.io",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kfairy9999/leadflow-mcp.git"
+    "url": "git+https://github.com/kfairley9999/leadflow-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/kfairy9999/leadflow-mcp/issues"
+    "url": "https://github.com/kfairley9999/leadflow-mcp/issues"
   },
   "keywords": [
     "mcp",
